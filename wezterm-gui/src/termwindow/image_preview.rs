@@ -17,10 +17,10 @@
 //! leaves the reference.
 //!
 //! Where a path is looked up depends on what runs in the pane. In a local
-//! pane it names a file on this machine. In a pane whose foreground process
-//! is ssh (the tabs attached to the iMac's sessions) it names a file on the
-//! far host, which is read with a second ssh to the same destination and
-//! options; a relative path there is resolved against the working directory
+//! pane it names a file on this machine. In a pane whose foreground job
+//! runs ssh (the tabs attached to the iMac's sessions, where a shell loop
+//! that reconnects the ssh leads the job) it names a file on the far host,
+//! which is read with a second ssh to the same destination and options; a relative path there is resolved against the working directory
 //! of the tmux session the pane attaches to, when it attaches to one.
 //! Panes running mosh or et, and multiplexer domains, resolve URLs only.
 //! A missing file, a file that does not decode, or a failed fetch draws
@@ -49,6 +49,7 @@ use mux::domain::LocalDomain;
 use mux::pane::{CachePolicy, Pane, PaneId};
 use mux::tab::PositionedPane;
 use mux::Mux;
+use procinfo::LocalProcessInfo;
 use std::collections::HashMap;
 use std::convert::TryFrom;
 use std::io::{Read, Write};
@@ -964,9 +965,67 @@ fn load_source(source: &ImageSource) -> anyhow::Result<LoadState> {
     Ok(LoadState::Ready(data, width, height))
 }
 
+/// The base name of the program a process runs: its executable's, else its
+/// first argument's, else its command name.
+fn program_name(info: &LocalProcessInfo) -> String {
+    let base = |p: &Path| p.file_name().and_then(|n| n.to_str()).map(str::to_string);
+    base(&info.executable)
+        .or_else(|| info.argv.first().and_then(|a| base(Path::new(a))))
+        .unwrap_or_else(|| info.name.clone())
+}
+/// Programs whose pane shows the files of another host.
+fn is_remote_client(name: &str) -> bool {
+    matches!(name, "ssh" | "mosh" | "mosh-client" | "et")
+}
+/// The process of the pane's foreground job that decides where its paths
+/// live. The terminal reports only the job's process group, whose leader
+/// may be a wrapper that runs the client as its child in the same group:
+/// a `sh -c` loop that reconnects an ssh when its connection drops, as the
+/// tabs attached to the iMac's sessions are (Ben's `wezterm.lua`,
+/// 2026-11-11). So the job's processes are searched from the leader down,
+/// one generation at a time, and the shallowest generation holding a remote
+/// client decides, if it holds exactly one: an ssh's own children (a
+/// ProxyCommand) sit below it and never decide. A process outside the
+/// group (`in_group` false) is a background job or a session of its own
+/// and is passed over with its children. Without a remote client in the
+/// job, the leader decides.
+fn foreground_process<'a>(
+    leader: &'a LocalProcessInfo,
+    in_group: &dyn Fn(u32) -> bool,
+) -> &'a LocalProcessInfo {
+    let mut generation = vec![leader];
+    while !generation.is_empty() {
+        let clients: Vec<_> = generation
+            .iter()
+            .copied()
+            .filter(|p| is_remote_client(&program_name(p)))
+            .collect();
+        match clients.len() {
+            0 => {}
+            1 => return clients[0],
+            _ => return leader,
+        }
+        generation = generation
+            .iter()
+            .flat_map(|p| p.children.values())
+            .filter(|child| in_group(child.pid))
+            .collect();
+    }
+    leader
+}
+/// Whether `pid` is in the process group `group`.
+#[cfg(unix)]
+fn in_process_group(pid: u32, group: u32) -> bool {
+    let pgid = unsafe { libc::getpgid(pid as libc::pid_t) };
+    pgid >= 0 && pgid as u32 == group
+}
+#[cfg(not(unix))]
+fn in_process_group(_pid: u32, _group: u32) -> bool {
+    true
+}
 /// What the paths a pane prints name: files on this machine (a local
-/// domain pane running neither ssh, mosh nor et), files on the far host of
-/// the ssh running in it, or nothing reachable.
+/// domain pane whose foreground job runs neither ssh, mosh nor et), files
+/// on the far host of the ssh running in it, or nothing reachable.
 fn pane_files(pane: &Arc<dyn Pane>) -> PaneFiles {
     let is_local_domain = Mux::get()
         .get_domain(pane.domain_id())
@@ -975,12 +1034,11 @@ fn pane_files(pane: &Arc<dyn Pane>) -> PaneFiles {
     if !is_local_domain {
         return PaneFiles::Unreachable;
     }
-    if let Some(info) = pane.get_foreground_process_info(CachePolicy::AllowStale) {
-        let base = |p: &Path| p.file_name().and_then(|n| n.to_str()).map(str::to_string);
-        let name = base(&info.executable)
-            .or_else(|| info.argv.first().and_then(|a| base(Path::new(a))))
-            .unwrap_or_else(|| info.name.clone());
-        match name.as_str() {
+    if let Some(leader) = pane.get_foreground_process_info(CachePolicy::AllowStale) {
+        // On unix the leader's pid is the foreground process group's id.
+        let group = leader.pid;
+        let info = foreground_process(&leader, &|pid| in_process_group(pid, group));
+        match program_name(info).as_str() {
             "ssh" => {
                 let mut argv = info.argv.clone();
                 if let Some(program) = argv.first_mut() {
@@ -2042,6 +2100,47 @@ mod test {
         assert_eq!(ssh_fetch_command(&strings(&["ssh", "-V"])), None);
     }
 
+    fn process(pid: u32, argv: &[&str], children: Vec<LocalProcessInfo>) -> LocalProcessInfo {
+        LocalProcessInfo {
+            pid,
+            ppid: 0,
+            name: String::new(),
+            executable: PathBuf::from(argv[0]),
+            argv: strings(argv),
+            cwd: PathBuf::new(),
+            status: procinfo::LocalProcessStatus::Run,
+            start_time: 0,
+            #[cfg(windows)]
+            console: 0,
+            children: children.into_iter().map(|c| (c.pid, c)).collect(),
+        }
+    }
+    #[test]
+    fn foreground_ssh_is_found_under_a_wrapper() {
+        let attach = ["/usr/bin/ssh", "-t", "imac", "tmux -L pi-gate attach -t =rc-x"];
+        // The reconnect loop leads the job; its ssh is the client.
+        let ssh = process(11, &attach, vec![process(12, &["/bin/sh", "-c", "nc"], vec![])]);
+        let leader = process(10, &["/bin/sh", "-c", "while :; do ssh; done"], vec![ssh]);
+        let all = |_: u32| true;
+        let found = foreground_process(&leader, &all);
+        assert_eq!(found.pid, 11);
+        // ssh leading the job decides; its ProxyCommand child never does.
+        let proxied = process(11, &attach, vec![process(12, &["/usr/bin/ssh", "-W", "x"], vec![])]);
+        assert_eq!(foreground_process(&proxied, &all).pid, 11);
+        // Between tries the loop sleeps: no client, the leader decides.
+        let sleeping = process(10, &["/bin/sh", "-c", "loop"], vec![process(13, &["sleep", "3"], vec![])]);
+        assert_eq!(foreground_process(&sleeping, &all).pid, 10);
+        // A background ssh of an interactive shell is outside the group.
+        let shell = process(20, &["-zsh"], vec![process(21, &["/usr/bin/ssh", "-N", "tunnel"], vec![])]);
+        assert_eq!(foreground_process(&shell, &|pid| pid == 20).pid, 20);
+        // Two clients in one generation: no single far host, the leader decides.
+        let two = process(
+            30,
+            &["/bin/sh"],
+            vec![process(31, &["/usr/bin/ssh", "a"], vec![]), process(32, &["/usr/bin/ssh", "b"], vec![])],
+        );
+        assert_eq!(foreground_process(&two, &all).pid, 30);
+    }
     #[test]
     fn tmux_cd_finds_the_attached_session() {
         assert_eq!(
