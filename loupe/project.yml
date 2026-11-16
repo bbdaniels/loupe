@@ -29,6 +29,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.bbdaniels.topaz.loupe
         PRODUCT_NAME: Loupe
         MACOSX_DEPLOYMENT_TARGET: "14.0"
+        # Written by hand, not generated: it declares the .topazedit document
+        # type (EditRequest) and the topaz:// URL scheme (SessionLink).
         INFOPLIST_FILE: Loupe/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Loupe/Resources/Loupe.entitlements
         CODE_SIGN_IDENTITY: "Topaz Dev"
@@ -79,6 +81,7 @@ targets:
       - path: Loupe/Services/SessionHost.swift
       - path: Loupe/Services/SessionScan.swift
       - path: Loupe/Services/IMacLauncher.swift
+      - path: Loupe/Services/SessionLink.swift
       - path: Loupe/Services/PanelToggle.swift
       - path: Loupe/Services/HostProcs.swift
       - path: Loupe/Services/WezTermService.swift

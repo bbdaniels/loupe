@@ -68,11 +68,7 @@ enum WezTerm {
     /// `session` is a gate session, `rc-` and pi-gate's NAME
     /// (`[a-z0-9][a-z0-9-]{0,39}`), since the config hands it to ssh.
     static func openRequest(session: String, at: Date) -> String? {
-        guard session.hasPrefix("rc-") else { return nil }
-        let name = session.dropFirst(3)
-        guard (1...IMacLauncher.maxName).contains(name.count), name.first != "-",
-              name.allSatisfy({ ("a"..."z").contains($0) || ("0"..."9").contains($0) || $0 == "-" })
-        else { return nil }
+        guard session.hasPrefix("rc-"), IMacLauncher.isGateName(session.dropFirst(3)) else { return nil }
         return "\(session)\t\(Int((at.timeIntervalSince1970 * 1000).rounded()))\n"
     }
 

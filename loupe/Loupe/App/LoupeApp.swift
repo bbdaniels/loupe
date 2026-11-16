@@ -382,9 +382,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Files opened with Loupe: Topaz's inline editor requests
     /// (`open -a Loupe.app <request>.topazedit`), each shown in an editor
-    /// panel (`EditorPanelManager`).
+    /// panel (`EditorPanelManager`). Links of the `topaz` scheme (Info.plist)
+    /// name a live session, opened as a click on its line opens it
+    /// (`AgentsService.open(sessionLink:)`).
     func application(_ application: NSApplication, open urls: [URL]) {
-        EditorPanelManager.shared.open(urls: urls)
+        let links = urls.filter { $0.scheme?.lowercased() == SessionLink.scheme }
+        let files = urls.filter { $0.scheme?.lowercased() != SessionLink.scheme }
+        if !files.isEmpty { EditorPanelManager.shared.open(urls: files) }
+        for url in links { appState.agentsService.open(sessionLink: url) }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

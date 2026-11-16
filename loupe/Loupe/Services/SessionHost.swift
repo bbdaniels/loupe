@@ -257,8 +257,13 @@ enum IMacLive {
 
     private static let lock = NSLock()
     private static var last: [ClaudeSessionRecord] = []
+    private static var lastAnswered = false
     private static var fetchedAt: Date?
     private static var fetching = false
+    /// The `done` of each forced refresh asked for while a fetch ran: they
+    /// get a fetch started after it, since that one may predate what they
+    /// wait for (a session just started, a link just clicked).
+    private static var waiting: [@Sendable () -> Void] = []
 
     /// The last fetch's records ([] before the first and after a failure).
     static var cached: [ClaudeSessionRecord] {
@@ -266,23 +271,47 @@ enum IMacLive {
         return last
     }
 
+    /// Whether the last fetch had the gate's answer, so an empty `cached`
+    /// can be told from an iMac that did not answer.
+    static var answered: Bool {
+        lock.lock(); defer { lock.unlock() }
+        return lastAnswered
+    }
+
     /// Start a fetch in the background when the last is older than
     /// `interval` and none is running; `done` runs on the main queue after it.
-    /// `force` skips the interval (not a fetch already running): right after
-    /// a session starts on the iMac, so it is listed in seconds, not ten.
+    /// `force` skips the interval: right after a session starts on the iMac,
+    /// so it is listed in seconds, not ten. A forced refresh while a fetch
+    /// runs waits for the next fetch, which starts when that one ends; an
+    /// unforced one is dropped, as the poll's next turn asks again.
     static func refresh(force: Bool = false, done: @escaping @Sendable () -> Void = {}) {
         lock.lock()
-        if fetching || (!force && (fetchedAt.map { Date().timeIntervalSince($0) < interval } ?? false)) {
+        if fetching {
+            if force { waiting.append(done) }
+            lock.unlock(); return
+        }
+        if !force && (fetchedAt.map { Date().timeIntervalSince($0) < interval } ?? false) {
             lock.unlock(); return
         }
         fetching = true
         lock.unlock()
-        DispatchQueue.global(qos: .utility).async {
-            let got = fetch() ?? []
+        DispatchQueue.global(qos: .utility).async { fetchLoop([done]) }
+    }
+
+    private static func fetchLoop(_ first: [@Sendable () -> Void]) {
+        var callers = first
+        while true {
+            let got = fetch()
             lock.lock()
-            last = got; fetchedAt = Date(); fetching = false
+            last = got ?? []; lastAnswered = got != nil; fetchedAt = Date()
+            let next = waiting
+            waiting = []
+            if next.isEmpty { fetching = false }
             lock.unlock()
-            DispatchQueue.main.async(execute: done)
+            let now = callers
+            DispatchQueue.main.async { now.forEach { $0() } }
+            guard !next.isEmpty else { return }
+            callers = next
         }
     }
 }

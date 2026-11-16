@@ -76,6 +76,13 @@ enum IMacLauncher {
         return out
     }
 
+    /// Whether `s` is pi-gate's NAME, `[a-z0-9][a-z0-9-]{0,39}`, whole: the
+    /// one check of a name that came from outside (a tab title, a link).
+    static func isGateName<S: StringProtocol>(_ s: S) -> Bool {
+        (1...maxName).contains(s.count) && s.first != "-"
+            && s.allSatisfy { ("a"..."z").contains($0) || ("0"..."9").contains($0) || $0 == "-" }
+    }
+
     /// `<project>-<suffix>`, at most `maxName` characters, the project part
     /// cut to fit; a valid launcher name whatever the project is called.
     static func name(project: String, suffix: String) -> String {

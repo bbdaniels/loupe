@@ -625,6 +625,53 @@ final class AgentsService: ObservableObject {
         return Self.open(a)
     }
 
+    /// Open the session a `topaz://session/<host>/<name>` link names
+    /// (`SessionLink`, the morning email's links) as a click on its line
+    /// does: the iMac's live sessions are fetched fresh, the list is read
+    /// again, and the row whose tmux session is `rc-<name>` goes through
+    /// `open`. A malformed link, a session not running, an iMac that did not
+    /// answer, and a MacBook session (Loupe lists none of the MacBook gate's
+    /// tmux sessions, so no line opens one) each say so in an alert.
+    func open(sessionLink url: URL) {
+        guard let link = SessionLink.parse(url) else {
+            Self.linkAlert("Loupe cannot open this link",
+                           "A session link is topaz://session/imac/<name> or topaz://session/mac/<name>, the name a pi-gate session name.\n\n\(url.absoluteString)")
+            return
+        }
+        switch link.host {
+        case .mac:
+            Self.linkAlert("Loupe cannot open a MacBook session from a link",
+                           "Loupe lists no session of the MacBook's gate, so it has no line to open \(link.tmuxSession) with. In a terminal on the MacBook: tmux -L pi-gate attach -t =\(link.tmuxSession)")
+        case .iMac:
+            IMacLive.refresh(force: true) { [weak self] in
+                Task { @MainActor in
+                    guard let self else { return }
+                    self.reload()
+                    if let a = self.agents.first(where: { $0.isIMac && $0.iMacTmux == link.tmuxSession }) {
+                        if !Self.open(a) {
+                            Self.linkAlert("The session did not open", "Topaz could not open a tab for \(link.tmuxSession).")
+                        }
+                    } else if !IMacLive.answered {
+                        Self.linkAlert("The iMac did not answer",
+                                       "It is asleep, offline, or refused ssh, so \(link.tmuxSession) could not be found.")
+                    } else {
+                        Self.linkAlert("The session is not running on the iMac",
+                                       "No live session \(link.tmuxSession): it has ended, or the link names one that never ran.")
+                    }
+                }
+            }
+        }
+    }
+
+    private static func linkAlert(_ message: String, _ detail: String) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = message
+        alert.informativeText = detail
+        NSApp.activate(ignoringOtherApps: true)
+        alert.runModal()
+    }
+
     /// Fetch recent output for the logs sheet.
     func fetchLogs(_ id: String) async -> String {
         await Self.runCapture(Self.resolveClaude(), ["logs", id], cwd: nil).output
