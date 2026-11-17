@@ -745,6 +745,11 @@ struct SessionLineView: View {
     @State private var hovering = false
     @State private var dotHovering = false
     @State private var stopping = false
+    @ObservedObject private var openWait = IMacOpenWait.shared
+
+    /// A click found the session working with no terminal: it opens when
+    /// its turn ends, and a second click calls that off.
+    private var waitingToOpen: Bool { line.sessionId.map(openWait.waiting.contains) ?? false }
 
     /// The dot shows its × only while the pointer is on it and the session
     /// can be stopped from here.
@@ -781,6 +786,12 @@ struct SessionLineView: View {
                         .foregroundColor(.primary.opacity(stopping ? 0.45 : line.hasWindow ? 0.85 : 0.6))
                         .lineLimit(1).truncationMode(.tail)
                     Spacer(minLength: 8)
+                    if waitingToOpen {
+                        Image(systemName: "clock")
+                            .font(.system(size: 9.5 * scale))
+                            .foregroundColor(.secondary)
+                            .accessibilityLabel("Opens when its turn ends")
+                    }
                     Text(line.machine)
                         .font(.custom("Fira Code", size: 9.5 * scale))
                         .foregroundColor(.secondary.opacity(0.7))
@@ -788,7 +799,9 @@ struct SessionLineView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help(line.hasWindow ? "Click to bring its tab forward." : "Not open in a terminal here: click to open it in a new tab.")
+            .help(waitingToOpen ? "Working: it opens in a tab when its turn ends. Click to call that off."
+                  : line.hasWindow ? "Click to bring its tab forward."
+                  : "Not open in a terminal here: click to open it in a new tab.")
         }
         .padding(.leading, inset)
         .padding(.trailing, 4)

@@ -105,4 +105,68 @@ final class IMacAdoptTests: XCTestCase {
         XCTAssertEqual(IMacLauncher.adoptCommand(name: "projects-c068e11d", sessionId: "c068e11d-5513-5ee9-8337-b970d9375149"),
                        "~/bin/pi-gate 'adopt' 'projects-c068e11d' 'c068e11d-5513-5ee9-8337-b970d9375149'")
     }
+
+    private let adopted = IMacLauncher.Outcome.running(.init(started: true, session: "rc-projects-c068e11d", dir: nil))
+    private let working = IMacLauncher.Outcome.failed(IMacLauncher.sessionWorking)
+
+    /// The gate's words for a session in the middle of a turn (pi-gate.py
+    /// `adopt`); the wait hangs on them.
+    func testTheWorkingRefusalIsTheGates() {
+        let answer = Data(#"{"ok": false, "error": "the session is working; open it when its turn ends"}"#.utf8)
+        XCTAssertEqual(IMacLauncher.outcome(status: 0, stdout: answer), working)
+    }
+
+    func testAnIdleSessionIsAdoptedAtOnce() {
+        var asks = 0, waits = 0, sleeps = 0
+        let outcome = IMacLauncher.adoptWhenIdle(attempt: { asks += 1; return self.adopted },
+                                                 cancelled: { false }, onWaiting: { waits += 1 },
+                                                 sleep: { _ in sleeps += 1 })
+        XCTAssertEqual(outcome, adopted)
+        XCTAssertEqual([asks, waits, sleeps], [1, 0, 0])
+    }
+
+    func testAWorkingSessionIsAdoptedWhenItsTurnEnds() {
+        var asks = 0, waits = 0
+        var slept: [TimeInterval] = []
+        let outcome = IMacLauncher.adoptWhenIdle(every: 2,
+                                                 attempt: { asks += 1; return asks < 4 ? self.working : self.adopted },
+                                                 cancelled: { false }, onWaiting: { waits += 1 },
+                                                 sleep: { slept.append($0) })
+        XCTAssertEqual(outcome, adopted)
+        XCTAssertEqual(asks, 4)
+        XCTAssertEqual(waits, 1, "the line is marked waiting once")
+        XCTAssertEqual(slept, [2, 2, 2])
+    }
+
+    func testAnyOtherRefusalEndsTheWait() {
+        var asks = 0
+        let gone = IMacLauncher.Outcome.failed("no running session with that id")
+        let outcome = IMacLauncher.adoptWhenIdle(attempt: { asks += 1; return asks < 3 ? self.working : gone },
+                                                 cancelled: { false }, sleep: { _ in })
+        XCTAssertEqual(outcome, gone)
+        XCTAssertEqual(asks, 3)
+    }
+
+    func testACancelledWaitAsksNoMore() {
+        var asks = 0
+        let outcome = IMacLauncher.adoptWhenIdle(attempt: { asks += 1; return self.working },
+                                                 cancelled: { asks >= 2 }, sleep: { _ in })
+        XCTAssertNil(outcome)
+        XCTAssertEqual(asks, 2, "the session is never stopped after the wait is called off")
+    }
+
+    @MainActor
+    func testASecondClickCallsOffOnlyAWaitingOpen() {
+        let wait = IMacOpenWait()
+        let flag = wait.begin("a")
+        XCTAssertNotNil(flag)
+        XCTAssertNil(wait.begin("a"), "one open of a session at a time")
+        XCTAssertFalse(wait.cancel("a"), "the first ask is left to finish")
+        wait.markWaiting("a")
+        XCTAssertEqual(wait.waiting, ["a"])
+        XCTAssertTrue(wait.cancel("a"))
+        XCTAssertEqual(flag?.isSet, true)
+        XCTAssertTrue(wait.waiting.isEmpty)
+        XCTAssertNotNil(wait.begin("a"), "it can be clicked again")
+    }
 }

@@ -31,6 +31,9 @@ enum IMacLauncher {
     /// Mac's. Such a session starts on this Mac instead, where it lives.
     static let folderMissing = "the folder is not a folder of ~/Projects on this machine"
     static let transcriptMissing = "no transcript of that session on this machine"
+    /// The gate's refusal to `adopt` a session in the middle of a turn
+    /// (pi-gate.py `adopt`): stopping it then would cut the turn.
+    static let sessionWorking = "the session is working; open it when its turn ends"
 
     struct Request: Equatable {
         var name: String
@@ -250,6 +253,36 @@ enum IMacLauncher {
                         adoptCommand(name: name, sessionId: sessionId)], prompt: nil)
     }
 
+    /// How often a waiting open asks the gate again (`adoptWhenIdle`).
+    static let adoptRetryInterval: TimeInterval = 2
+
+    /// `attempt` (the gate's `adopt`) until it gives anything but the
+    /// working refusal, `interval` apart: a session the phone or claude.ai
+    /// started can only move into a terminal between turns, so a click on a
+    /// working one waits for its turn to end (Ben, 2026-11-17) where it
+    /// used to be refused. `onWaiting` runs once, after the first working
+    /// refusal. Nil when `cancelled` turned true while waiting; no deadline
+    /// otherwise, since a turn has none and a session that ends answers
+    /// with the gate's "no running session". Blocks: call it off the main
+    /// thread.
+    static func adoptWhenIdle(every interval: TimeInterval = adoptRetryInterval,
+                              attempt: () -> Outcome,
+                              cancelled: () -> Bool,
+                              onWaiting: () -> Void = {},
+                              sleep: (TimeInterval) -> Void = { Thread.sleep(forTimeInterval: $0) }) -> Outcome? {
+        var waited = false
+        while true {
+            if cancelled() { return nil }
+            let outcome = attempt()
+            guard outcome == .failed(sessionWorking) else { return outcome }
+            if !waited {
+                waited = true
+                onWaiting()
+            }
+            sleep(interval)
+        }
+    }
+
     private static func run(arguments: [String], prompt: String?) -> Outcome {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
@@ -268,5 +301,59 @@ enum IMacLauncher {
         let data = output.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
         return outcome(status: process.terminationStatus, stdout: data)
+    }
+}
+
+/// The iMac sessions a click is waiting to open: each was started from the
+/// phone or claude.ai, was working when clicked, and opens in a tab when its
+/// turn ends (`IMacLauncher.adoptWhenIdle`, `AgentsService.open`). The
+/// session's line shows a clock meanwhile, and a second click there calls
+/// the wait off.
+@MainActor
+final class IMacOpenWait: ObservableObject {
+    static let shared = IMacOpenWait()
+
+    /// Read off the main thread by the waiting loop, set on it by a click.
+    final class Flag: @unchecked Sendable {
+        private let lock = NSLock()
+        private var value = false
+        var isSet: Bool {
+            lock.lock(); defer { lock.unlock() }
+            return value
+        }
+        func set() {
+            lock.lock(); defer { lock.unlock() }
+            value = true
+        }
+    }
+
+    /// The session ids whose wait has met a working refusal.
+    @Published private(set) var waiting: Set<String> = []
+    private var flags: [String: Flag] = [:]
+
+    /// The flag of a new open of `sessionId`, or nil when one is under way.
+    func begin(_ sessionId: String) -> Flag? {
+        guard flags[sessionId] == nil else { return nil }
+        let flag = Flag()
+        flags[sessionId] = flag
+        return flag
+    }
+
+    func markWaiting(_ sessionId: String) {
+        if flags[sessionId] != nil { waiting.insert(sessionId) }
+    }
+
+    /// Call off the wait for `sessionId`; false when it was not waiting (an
+    /// open still on its first ask is left to finish).
+    func cancel(_ sessionId: String) -> Bool {
+        guard waiting.contains(sessionId) else { return false }
+        flags[sessionId]?.set()
+        finish(sessionId)
+        return true
+    }
+
+    func finish(_ sessionId: String) {
+        flags[sessionId] = nil
+        waiting.remove(sessionId)
     }
 }

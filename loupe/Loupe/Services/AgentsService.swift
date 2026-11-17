@@ -583,9 +583,20 @@ final class AgentsService: ObservableObject {
                 guard let sid = a.sessionId else { return false }
                 let name = IMacLauncher.resumeName(project: URL(fileURLWithPath: a.cwd).lastPathComponent,
                                                    sessionId: sid)
+                // Working: the gate adopts only between turns, so the click
+                // waits for the turn to end (`IMacLauncher.adoptWhenIdle`),
+                // a clock on the session's line meanwhile; a click on a
+                // waiting session calls the wait off.
+                if IMacOpenWait.shared.cancel(sid) { return true }
+                guard let flag = IMacOpenWait.shared.begin(sid) else { return true }
                 Task.detached(priority: .userInitiated) {
-                    let outcome = IMacLauncher.adopt(name: name, sessionId: sid)
+                    let outcome = IMacLauncher.adoptWhenIdle(
+                        attempt: { IMacLauncher.adopt(name: name, sessionId: sid) },
+                        cancelled: { flag.isSet },
+                        onWaiting: { Task { @MainActor in IMacOpenWait.shared.markWaiting(sid) } })
                     await MainActor.run {
+                        guard let outcome else { return }   // called off by a second click
+                        IMacOpenWait.shared.finish(sid)
                         switch outcome {
                         case .running(let answer):
                             IMacLive.refresh(force: true)
