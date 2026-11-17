@@ -23,7 +23,76 @@ use wezterm_dynamic::ToDynamic;
 use wezterm_term::input::{MouseButton, MouseEventKind as TMEK};
 use wezterm_term::{ClickPosition, LastMouseClick, StableRowIndex};
 
+/// Where a tab held by the pointer goes when the pointer is over another
+/// tab: that tab's index, once the pointer is inside the part of it the
+/// held tab will cover after the move. Tabs differ in width, so moving on
+/// first contact would leave the pointer over the wider neighbor again and
+/// the two would trade places on every move. `None`: stay.
+pub fn tab_drag_target(
+    dragged: usize,
+    dragged_width: usize,
+    hovered: usize,
+    hovered_x: usize,
+    hovered_width: usize,
+    pointer_x: isize,
+) -> Option<usize> {
+    if hovered == dragged {
+        return None;
+    }
+    let covered = dragged_width.min(hovered_width) as isize;
+    let left = hovered_x as isize;
+    let right = left + hovered_width as isize;
+    let reached = if hovered > dragged {
+        pointer_x >= right - covered
+    } else {
+        pointer_x <= left + covered
+    };
+    reached.then_some(hovered)
+}
+
 impl super::TermWindow {
+    /// The width of tab `tab_idx` in the tab bar as last painted.
+    fn tab_width(&self, tab_idx: usize) -> Option<usize> {
+        self.ui_items.iter().find_map(|item| match item.item_type {
+            UIItemType::TabBar(TabBarItem::Tab { tab_idx: idx, .. }) if idx == tab_idx => {
+                Some(item.width)
+            }
+            _ => None,
+        })
+    }
+
+    /// While a tab is held, the pointer over tab `hovered` moves the held
+    /// tab there (`tab_drag_target`). The held tab is the active one: the
+    /// press activated it. Until the bar is painted again the items still
+    /// describe the old order, in which the pointer is over the held tab's
+    /// new index, so nothing more moves.
+    fn drag_tab_over(&mut self, hovered: usize, event: &MouseEvent, context: &dyn WindowOps) {
+        let Some(dragged) = self.tab_drag else {
+            return;
+        };
+        if !self.current_mouse_buttons.contains(&MousePress::Left) {
+            self.tab_drag = None;
+            return;
+        }
+        let (Some(dragged_width), Some(over)) = (self.tab_width(dragged), self.last_ui_item.clone())
+        else {
+            return;
+        };
+        if let Some(target) = tab_drag_target(
+            dragged,
+            dragged_width,
+            hovered,
+            over.x,
+            over.width,
+            event.coords.x,
+        ) {
+            if self.move_tab(target).is_ok() {
+                self.tab_drag = Some(target);
+                context.invalidate();
+            }
+        }
+    }
+
     fn resolve_ui_item(&self, event: &MouseEvent) -> Option<UIItem> {
         let x = event.coords.x;
         let y = event.coords.y;
@@ -127,6 +196,9 @@ impl super::TermWindow {
             WMEK::Release(ref press) => {
                 self.current_mouse_capture = None;
                 self.current_mouse_buttons.retain(|p| p != press);
+                if press == &MousePress::Left {
+                    self.tab_drag = None;
+                }
                 if press == &MousePress::Left && self.window_drag_position.take().is_some() {
                     // Completed a window drag
                     return;
@@ -471,7 +543,9 @@ impl super::TermWindow {
         match event.kind {
             WMEK::Press(MousePress::Left) => match item {
                 TabBarItem::Tab { tab_idx, .. } => {
-                    self.activate_tab(tab_idx as isize).ok();
+                    // Held from here until the release, the tab can be
+                    // dragged along the bar (`drag_tab_over`).
+                    self.tab_drag = self.activate_tab(tab_idx as isize).ok().map(|_| tab_idx);
                 }
                 TabBarItem::NewTabButton { .. } => {
                     self.do_new_tab_button_click(MousePress::Left);
@@ -557,9 +631,8 @@ impl super::TermWindow {
                     );
                     context.set_maximize_button_position(bounds);
                 }
-                TabBarItem::WindowButton(_)
-                | TabBarItem::Tab { .. }
-                | TabBarItem::NewTabButton { .. } => {}
+                TabBarItem::Tab { tab_idx, .. } => self.drag_tab_over(tab_idx, &event, context),
+                TabBarItem::WindowButton(_) | TabBarItem::NewTabButton { .. } => {}
             },
             WMEK::VertWheel(n) => {
                 if self.config.mouse_wheel_scrolls_tabs {
@@ -1067,5 +1140,48 @@ fn mouse_press_to_tmb(press: &MousePress) -> TMB {
         MousePress::Left => TMB::Left,
         MousePress::Right => TMB::Right,
         MousePress::Middle => TMB::Middle,
+    }
+}
+
+
+#[cfg(test)]
+mod tab_drag_tests {
+    use super::tab_drag_target;
+
+    // Tabs: 0 at 0..100, 1 at 100..300, 2 at 300..360.
+
+    #[test]
+    fn a_tab_over_itself_stays() {
+        assert_eq!(tab_drag_target(1, 200, 1, 100, 200, 150), None);
+    }
+
+    #[test]
+    fn a_narrow_tab_moves_right_only_where_it_will_lie_under_the_pointer() {
+        // Tab 0 (100 wide) over tab 1 (100..300): after the move tab 0 lies
+        // at 200..300, so the pointer has to be there.
+        assert_eq!(tab_drag_target(0, 100, 1, 100, 200, 150), None);
+        assert_eq!(tab_drag_target(0, 100, 1, 100, 200, 200), Some(1));
+        // And then, over its own new place, it stays.
+        assert_eq!(tab_drag_target(1, 100, 1, 200, 100, 200), None);
+    }
+
+    #[test]
+    fn a_narrow_tab_moves_left_only_where_it_will_lie_under_the_pointer() {
+        // Tab 2 (60 wide) over tab 1 (100..300): it will lie at 100..160.
+        assert_eq!(tab_drag_target(2, 60, 1, 100, 200, 250), None);
+        assert_eq!(tab_drag_target(2, 60, 1, 100, 200, 160), Some(1));
+    }
+
+    #[test]
+    fn a_wide_tab_moves_on_contact_with_a_narrower_one() {
+        // Tab 1 (200 wide) over tab 2 (300..360) and over tab 0 (0..100).
+        assert_eq!(tab_drag_target(1, 200, 2, 300, 60, 300), Some(2));
+        assert_eq!(tab_drag_target(1, 200, 0, 0, 100, 100), Some(0));
+    }
+
+    #[test]
+    fn a_tab_can_pass_several_at_once() {
+        // Tab 0 (100 wide) with the pointer at the end of tab 2 (300..360).
+        assert_eq!(tab_drag_target(0, 100, 2, 300, 60, 330), Some(2));
     }
 }

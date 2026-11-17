@@ -44,7 +44,9 @@
 # window of the gate's tmux, for example:
 #   /opt/homebrew/bin/tmux -L pi-gate new-window -d -t pi-gate-keep \
 #     '~/Projects/topaz/topaz-build.sh --stage'
-# Install from outside Topaz (quitting it ends the shells in its tabs). The
+# Quitting Topaz ends the shells in its tabs, so an install started in a
+# Topaz tab hands itself to a copy that outlives the tab and writes
+# ~/Library/Caches/topaz-build/install.log (install_staged). The
 # config goes in after the app because config_builder() rejects keys an
 # older build does not know. Config: bbdaniels/personal, deploy/mac/wezterm.
 # The helpers' tests (loupe/, LoupeTests, both helpers') must pass, or nothing is
@@ -222,8 +224,27 @@ permissions() {
   (( short ))
 }
 
+# Whether this script runs inside Topaz: wezterm-gui is one of its ancestors.
+inside_topaz() {
+  local pid=$$ comm
+  while (( pid > 1 )); do
+    comm=$(ps -o comm= -p $pid) || return 1
+    [[ $comm == */wezterm-gui ]] && return 0
+    pid=$(( $(ps -o ppid= -p $pid) ))
+  done
+  return 1
+}
+
 install_staged() {
   verify $STAGE
+  # 2026-11-17: run in a Topaz tab, the script died with the tab at the
+  # quit below, before it had replaced the app, and nothing said so.
+  if [[ -z ${TOPAZ_INSTALL_DETACHED:-} ]] && inside_topaz; then
+    mkdir -p $LOGS
+    echo "Run in a Topaz tab, which closes when Topaz quits: the install goes on without it. Its log: $LOGS/install.log"
+    TOPAZ_INSTALL_DETACHED=1 nohup $PWD/topaz-build.sh --install > $LOGS/install.log 2>&1 < /dev/null &!
+    exit 0
+  fi
   osascript -e 'tell application "Topaz" to quit' 2>/dev/null || true
   for _ in {1..40}; do
     pgrep -aqf $APP/Contents/MacOS/wezterm-gui || break
