@@ -50,7 +50,77 @@ pub fn tab_drag_target(
     reached.then_some(hovered)
 }
 
+/// What a mouse event does to a link when the program in the pane takes
+/// the mouse (`link_click_step`).
+#[derive(Debug, PartialEq, Eq)]
+pub enum LinkClick {
+    /// Not a click on a link: the event goes on to the program.
+    Pass,
+    /// A plain left press on a link: remembered, and kept from the program.
+    Hold,
+    /// The release of that press, still on the link: open it.
+    Open,
+    /// The release of that press elsewhere, or a move during it: kept from
+    /// the program, nothing opens.
+    Keep,
+}
+
+/// A plain left click on a link opens it even when the program in the pane
+/// takes the mouse, as tmux with its mouse mode on does in every iMac tab
+/// (Ben, 2026-11-17: links there did not open; only a Shift click reached
+/// the open-link binding). `hovered` and `pressed` are the links' addresses:
+/// the one under the pointer and the one the press landed on.
+pub fn link_click_step(
+    kind: &WMEK,
+    plain: bool,
+    grabbed: bool,
+    hovered: Option<&str>,
+    pressed: Option<&str>,
+) -> LinkClick {
+    match kind {
+        WMEK::Press(MousePress::Left) if plain && grabbed && hovered.is_some() => LinkClick::Hold,
+        WMEK::Release(MousePress::Left) => match pressed {
+            Some(link) if hovered == Some(link) => LinkClick::Open,
+            Some(_) => LinkClick::Keep,
+            None => LinkClick::Pass,
+        },
+        WMEK::Move if pressed.is_some() => LinkClick::Keep,
+        _ => LinkClick::Pass,
+    }
+}
+
 impl super::TermWindow {
+    /// Applies `link_click_step`; true when the event is kept from the
+    /// program in the pane.
+    fn link_click(&mut self, pane: &Arc<dyn Pane>, event: &MouseEvent) -> bool {
+        let plain = event.modifiers.remove_positional_mods() == ::window::Modifiers::NONE;
+        let step = link_click_step(
+            &event.kind,
+            plain,
+            pane.is_mouse_grabbed(),
+            self.current_highlight.as_ref().map(|link| link.uri()),
+            self.link_pressed.as_ref().map(|link| link.uri()),
+        );
+        match step {
+            LinkClick::Pass => false,
+            LinkClick::Hold => {
+                self.link_pressed = self.current_highlight.clone();
+                true
+            }
+            LinkClick::Open => {
+                self.link_pressed = None;
+                self.do_open_link_at_mouse_cursor(pane);
+                true
+            }
+            LinkClick::Keep => {
+                if matches!(event.kind, WMEK::Release(_)) {
+                    self.link_pressed = None;
+                }
+                true
+            }
+        }
+    }
+
     /// The width of tab `tab_idx` in the tab bar as last painted.
     fn tab_width(&self, tab_idx: usize) -> Option<usize> {
         self.ui_items.iter().find_map(|item| match item.item_type {
@@ -927,6 +997,12 @@ impl super::TermWindow {
             CursorIcon::Text
         }));
 
+        // Topaz: a plain left click on a link opens it even when the
+        // program in the pane takes the mouse.
+        if allow_action && self.link_click(&pane, &event) {
+            return;
+        }
+
         // Topaz: a plain left click on an image reference that previews,
         // or on a file to edit, opens it, even when the program in the pane
         // (tmux with its mouse mode on) takes the mouse.
@@ -1183,5 +1259,44 @@ mod tab_drag_tests {
     fn a_tab_can_pass_several_at_once() {
         // Tab 0 (100 wide) with the pointer at the end of tab 2 (300..360).
         assert_eq!(tab_drag_target(0, 100, 2, 300, 60, 330), Some(2));
+    }
+}
+
+#[cfg(test)]
+mod link_click_tests {
+    use super::{link_click_step, LinkClick};
+    use ::window::{MouseEventKind as WMEK, MousePress};
+
+    const A: Option<&str> = Some("https://a.example");
+    const B: Option<&str> = Some("https://b.example");
+
+    #[test]
+    fn a_plain_click_on_a_link_opens_it_under_a_program_that_takes_the_mouse() {
+        assert_eq!(link_click_step(&WMEK::Press(MousePress::Left), true, true, A, None), LinkClick::Hold);
+        assert_eq!(link_click_step(&WMEK::Move, true, true, A, A), LinkClick::Keep);
+        assert_eq!(link_click_step(&WMEK::Release(MousePress::Left), true, true, A, A), LinkClick::Open);
+    }
+
+    #[test]
+    fn a_release_off_the_link_opens_nothing_and_stays_from_the_program() {
+        assert_eq!(link_click_step(&WMEK::Release(MousePress::Left), true, true, None, A), LinkClick::Keep);
+        assert_eq!(link_click_step(&WMEK::Release(MousePress::Left), true, true, B, A), LinkClick::Keep);
+    }
+
+    #[test]
+    fn the_release_is_kept_even_if_the_program_let_go_of_the_mouse() {
+        assert_eq!(link_click_step(&WMEK::Release(MousePress::Left), true, false, A, A), LinkClick::Open);
+    }
+
+    #[test]
+    fn everything_else_goes_to_the_program_or_the_bindings() {
+        // No program takes the mouse: the bindings open the link as before.
+        assert_eq!(link_click_step(&WMEK::Press(MousePress::Left), true, false, A, None), LinkClick::Pass);
+        // A modifier is held, no link is under the pointer, another button.
+        assert_eq!(link_click_step(&WMEK::Press(MousePress::Left), false, true, A, None), LinkClick::Pass);
+        assert_eq!(link_click_step(&WMEK::Press(MousePress::Left), true, true, None, None), LinkClick::Pass);
+        assert_eq!(link_click_step(&WMEK::Press(MousePress::Right), true, true, A, None), LinkClick::Pass);
+        assert_eq!(link_click_step(&WMEK::Release(MousePress::Left), true, true, A, None), LinkClick::Pass);
+        assert_eq!(link_click_step(&WMEK::Move, true, true, A, None), LinkClick::Pass);
     }
 }

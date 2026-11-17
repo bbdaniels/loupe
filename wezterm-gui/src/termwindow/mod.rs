@@ -431,6 +431,9 @@ pub struct TermWindow {
 
     /// The URL over which we are currently hovering
     current_highlight: Option<Arc<Hyperlink>>,
+    /// The link a plain left press landed on while the program in the pane
+    /// took the mouse; its release opens it (`link_click`).
+    link_pressed: Option<Arc<Hyperlink>>,
 
     /// The image reference the mouse rests on, and the decoded previews
     image_preview: image_preview::ImagePreview,
@@ -749,6 +752,7 @@ impl TermWindow {
             current_mouse_capture: None,
             last_mouse_click: None,
             current_highlight: None,
+            link_pressed: None,
             image_preview: Default::default(),
             quad_generation: 0,
             shape_generation: 0,
