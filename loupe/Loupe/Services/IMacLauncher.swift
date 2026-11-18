@@ -86,6 +86,25 @@ enum IMacLauncher {
             && s.allSatisfy { ("a"..."z").contains($0) || ("0"..."9").contains($0) || $0 == "-" }
     }
 
+    /// The gate session a process on this Mac is attached to: the `rc-<name>`
+    /// of a `tmux -L pi-gate attach -t =rc-<name>` command line (as `ps`
+    /// prints it), the command a click on a MacBook gate session's line runs
+    /// in its tab (`WezTerm.macGateAttachArgv`). Nil for anything else, an
+    /// ssh to the iMac that carries the same words among them: argv[0] must
+    /// be tmux itself.
+    static func localGateAttach(command: String) -> String? {
+        let parts = command.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
+        guard let argv0 = parts.first, argv0 == "tmux" || argv0.hasSuffix("/tmux"),
+              let l = parts.firstIndex(of: "-L"), l + 1 < parts.count, parts[l + 1] == GateLive.tmuxServer,
+              parts.contains(where: { ["attach", "attach-session", "a"].contains($0) }),
+              let t = parts.firstIndex(of: "-t"), t + 1 < parts.count else { return nil }
+        var target = Substring(parts[t + 1])
+        if target.hasPrefix("=") { target = target.dropFirst() }
+        if let colon = target.firstIndex(of: ":") { target = target[..<colon] }
+        guard target.hasPrefix("rc-"), isGateName(target.dropFirst(3)) else { return nil }
+        return String(target)
+    }
+
     /// `<project>-<suffix>`, at most `maxName` characters, the project part
     /// cut to fit; a valid launcher name whatever the project is called.
     static func name(project: String, suffix: String) -> String {

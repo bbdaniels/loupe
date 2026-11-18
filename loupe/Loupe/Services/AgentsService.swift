@@ -31,7 +31,9 @@ final class AgentsService: ObservableObject {
 
     /// Which sessions are open in a WezTerm tab, and in which (`WezTerm.attaches`):
     /// an iMac session by its tab's title, its tmux session name; a Mac
-    /// daemon session by the terminal its `claude attach <short>` runs on.
+    /// daemon session by the terminal its `claude attach <short>` runs on; a
+    /// session of the MacBook's gate by the terminal its `tmux -L pi-gate
+    /// attach` runs on.
     /// This is the honest answer to "can Ben see and answer this session
     /// right now". Empty when WezTerm is not running.
     ///
@@ -41,10 +43,20 @@ final class AgentsService: ObservableObject {
     /// The key `scanAttaches` files an iMac session's tab under: its tmux session.
     nonisolated static func iMacAttachKey(_ tmux: String) -> String { "imac-tmux:" + tmux }
 
+    /// The key `scanAttaches` files a gate session's tab under: its machine
+    /// and its tmux session, so the same name on both machines is two tabs.
+    nonisolated static func gateAttachKey(_ host: SessionHost, _ tmux: String) -> String {
+        switch host {
+        case .iMac: return iMacAttachKey(tmux)
+        case .mac: return "mac-tmux:" + tmux
+        }
+    }
+
     /// The key `scanAttaches` files this session's tab under: its tmux
-    /// session for an iMac session, its id for a Mac daemon session.
+    /// session for a gate session, its id for a Mac daemon session.
     nonisolated static func attachKey(_ a: AgentSession) -> String? {
-        a.isIMac ? a.iMacTmux.map(iMacAttachKey) : a.id
+        guard let host = a.gateHost else { return a.id }
+        return a.gateTmux.map { gateAttachKey(host, $0) }
     }
 
     private var attachCache: (map: [String: AttachInfo], at: Date)?
@@ -65,9 +77,12 @@ final class AgentsService: ObservableObject {
         guard !panes.isEmpty else { return [:] }
         var clients: [(short: String, tty: String)] = []
         for (_, info) in ClaudeProcessSnapshot.processTable().rows {
-            guard case .attachClient(let short) = ClaudeProcKind.of(command: info.command),
-                  !info.tty.isEmpty, info.tty != "??" else { continue }
-            clients.append((short, info.tty))
+            guard !info.tty.isEmpty, info.tty != "??" else { continue }
+            if case .attachClient(let short) = ClaudeProcKind.of(command: info.command) {
+                clients.append((short, info.tty))
+            } else if let tmux = IMacLauncher.localGateAttach(command: info.command) {
+                clients.append((gateAttachKey(.mac, tmux), info.tty))
+            }
         }
         return WezTerm.attaches(panes: panes, attachClients: clients, iMacKey: iMacAttachKey)
     }
@@ -261,45 +276,52 @@ final class AgentsService: ObservableObject {
             ))
         }
 
-        // The iMac's running sessions (`IMacLive`, refreshed in the
-        // background every 10 s), so a project row shows them with the same
-        // badges as the Mac's. Its cwd is mapped onto this Mac's checkout; no
-        // pid, so nothing here can signal a local process; its tmux session,
-        // which a click attaches a WezTerm tab to over ssh (never its
-        // claude.ai page: Ben, 2026-11-03, "claude.ai ... is never the right
-        // place to land"). The stop, logs and remove menu stays hidden.
-        IMacLive.refresh { [weak self] in Task { @MainActor in self?.reload() } }
-        // A service session (the runner's Duet session, `service` from the
-        // gate) is not Ben's work and is left out: what it needs reaches him in
-        // the Duet chat, and the runner restarts it (Ben, 2026-11-06, "hide it").
-        for r in IMacLive.cached where r.kind == "interactive" && r.service == nil {
-            let cwd = SessionHost.iMac.macPath(r.cwd)
-            let project = cwd.isEmpty ? "" : URL(fileURLWithPath: cwd).lastPathComponent
-            let tmuxSession = r.tmux.flatMap { $0.split(separator: ":").first.map(String.init) }
-            let attach = tmuxSession.flatMap { attaches[Self.iMacAttachKey($0)] }
-            result.append(AgentSession(
-                id: "imac:" + r.sessionId,
-                name: r.name ?? tmuxSession ?? "\(project) · iMac",
-                rawState: r.displayState,
-                detail: r.waitingFor ?? "",
-                intent: "",
-                cwd: cwd,
-                createdAt: r.startedAt,
-                updatedAt: r.updatedAt,
-                isAlive: true,
-                pid: nil,
-                isPinned: false,
-                template: "imac",
-                tempo: nil,
-                inFlightTasks: 0,
-                isOpen: true,
-                attachedTab: attach?.tabTitle,
-                transcriptMtime: nil,
-                worktreePath: nil,
-                sessionId: r.sessionId,
-                iMacTmux: tmuxSession,
-                inShell: r.status == "shell"
-            ))
+        // Each machine's gate sessions (`GateLive`, refreshed in the
+        // background every 10 s), so a project row shows the iMac's and the
+        // MacBook gate's with the same badges as a daemon job's. The cwd is
+        // mapped onto this Mac's checkout; no pid, so nothing here can signal
+        // a process; the tmux session, which a click attaches a Topaz tab to
+        // (never its claude.ai page: Ben, 2026-11-03, "claude.ai ... is never
+        // the right place to land"). The stop, logs and remove menu stays
+        // hidden. Which records get a line is `GateLive.rows`: a MacBook
+        // session a source above already listed is not listed again.
+        for host in SessionHost.allCases {
+            GateLive.refresh(host) { [weak self] in Task { @MainActor in self?.reload() } }
+            let listed = host == .mac ? Set(result.filter(\.isAlive).compactMap(\.sessionId)) : []
+            for r in GateLive.rows(host: host, records: GateLive.cached(host), listed: listed) {
+                let cwd = host.macPath(r.cwd)
+                let project = cwd.isEmpty ? "" : URL(fileURLWithPath: cwd).lastPathComponent
+                let tmuxSession = r.tmuxSession
+                let attach = tmuxSession.flatMap { attaches[Self.gateAttachKey(host, $0)] }
+                let transcriptMtime: Date? = host == .mac
+                    ? ClaudeSessionRecords.transcriptPath(sessionId: r.sessionId, cwd: r.cwd).flatMap {
+                        (try? fm.attributesOfItem(atPath: $0))?[.modificationDate] as? Date
+                    }
+                    : nil
+                result.append(AgentSession(
+                    id: host.rawValue.lowercased() + ":" + r.sessionId,
+                    name: r.name ?? tmuxSession ?? "\(project) · \(host.machine)",
+                    rawState: r.displayState,
+                    detail: r.waitingFor ?? "",
+                    intent: "",
+                    cwd: cwd,
+                    createdAt: r.startedAt,
+                    updatedAt: r.updatedAt,
+                    isAlive: true,
+                    pid: nil,
+                    isPinned: false,
+                    template: AgentSession.gateTemplate(host),
+                    tempo: nil,
+                    inFlightTasks: 0,
+                    isOpen: true,
+                    attachedTab: attach?.tabTitle,
+                    transcriptMtime: transcriptMtime,
+                    worktreePath: nil,
+                    sessionId: r.sessionId,
+                    gateTmux: tmuxSession,
+                    inShell: r.status == "shell"
+                ))
+            }
         }
 
         // Titles for the live sessions, read where History reads them, and
@@ -563,7 +585,8 @@ final class AgentsService: ObservableObject {
     /// tab per session). Already open in a tab (found by a scan made at the
     /// click, never the last one, which can name a tab closed since): that
     /// tab comes forward. Not open: a new tab running `claude attach` for a
-    /// Mac daemon session; an iMac session's tab is Topaz's config's to
+    /// Mac daemon session and `tmux -L pi-gate attach` for a session of the
+    /// MacBook's gate; an iMac session's tab is Topaz's config's to
     /// focus or open (`WezTerm.openIMac`), so it is never opened twice. A
     /// session started from the phone or claude.ai on this Mac has no
     /// terminal anywhere (Remote Control spawns it headless), so it alone
@@ -576,7 +599,7 @@ final class AgentsService: ObservableObject {
         }
         let dir = a.cwd.isEmpty || !FileManager.default.fileExists(atPath: a.cwd) ? nil : a.cwd
         if a.isIMac {
-            guard let tmux = a.iMacTmux else {
+            guard let tmux = a.gateTmux else {
                 // No terminal: a session the Remote Control server spawned
                 // (the phone, claude.ai). The gate's `adopt` moves it into
                 // its tmux, then it opens as any iMac session does.
@@ -599,7 +622,7 @@ final class AgentsService: ObservableObject {
                         IMacOpenWait.shared.finish(sid)
                         switch outcome {
                         case .running(let answer):
-                            IMacLive.refresh(force: true)
+                            GateLive.refresh(.iMac, force: true)
                             WezTerm.openIMac(session: IMacLauncher.tabTitle(answer))
                         case .notOnIMac(let reason), .failed(let reason):
                             let alert = NSAlert()
@@ -613,6 +636,14 @@ final class AgentsService: ObservableObject {
                 return true
             }
             return WezTerm.openIMac(session: tmux)
+        }
+        if a.gateHost == .mac {
+            // The MacBook gate's session: the gate's own attach, in a tab
+            // Loupe opens itself (the config opens tabs only for the iMac's
+            // sessions), found again by the terminal that attach runs on.
+            guard let tmux = a.gateTmux, let argv = WezTerm.macGateAttachArgv(session: tmux) else { return false }
+            let project = URL(fileURLWithPath: a.cwd).lastPathComponent
+            return WezTerm.open(title: WezTerm.macTabTitle(project: project), argv: argv, cwd: dir, find: find)
         }
         if let url = a.remoteControlURL {
             NSWorkspace.shared.open(url)
@@ -638,37 +669,33 @@ final class AgentsService: ObservableObject {
 
     /// Open the session a `topaz://session/<host>/<name>` link names
     /// (`SessionLink`, the morning email's links) as a click on its line
-    /// does: the iMac's live sessions are fetched fresh, the list is read
-    /// again, and the row whose tmux session is `rc-<name>` goes through
-    /// `open`. A malformed link, a session not running, an iMac that did not
-    /// answer, and a MacBook session (Loupe lists none of the MacBook gate's
-    /// tmux sessions, so no line opens one) each say so in an alert.
+    /// does, on either machine: that machine's live sessions are fetched
+    /// fresh, the list is read again, and the row whose tmux session is
+    /// `rc-<name>` goes through `open`. A malformed link, a session not
+    /// running and a machine whose gate did not answer each say so in an
+    /// alert (`SessionLink.notFound`).
     func open(sessionLink url: URL) {
         guard let link = SessionLink.parse(url) else {
             Self.linkAlert("Loupe cannot open this link",
                            "A session link is topaz://session/imac/<name> or topaz://session/mac/<name>, the name a pi-gate session name.\n\n\(url.absoluteString)")
             return
         }
-        switch link.host {
-        case .mac:
-            Self.linkAlert("Loupe cannot open a MacBook session from a link",
-                           "Loupe lists no session of the MacBook's gate, so it has no line to open \(link.tmuxSession) with. In a terminal on the MacBook: tmux -L pi-gate attach -t =\(link.tmuxSession)")
-        case .iMac:
-            IMacLive.refresh(force: true) { [weak self] in
-                Task { @MainActor in
-                    guard let self else { return }
-                    self.reload()
-                    if let a = self.agents.first(where: { $0.isIMac && $0.iMacTmux == link.tmuxSession }) {
-                        if !Self.open(a) {
-                            Self.linkAlert("The session did not open", "Topaz could not open a tab for \(link.tmuxSession).")
-                        }
-                    } else if !IMacLive.answered {
-                        Self.linkAlert("The iMac did not answer",
-                                       "It is asleep, offline, or refused ssh, so \(link.tmuxSession) could not be found.")
-                    } else {
-                        Self.linkAlert("The session is not running on the iMac",
-                                       "No live session \(link.tmuxSession): it has ended, or the link names one that never ran.")
+        let host = link.sessionHost
+        GateLive.refresh(host, force: true) { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.reload()
+                // The session's own gate row, else the line another source
+                // gave the same session (`GateLive.rows` lists it once).
+                let held = GateLive.cached(host).first { $0.tmuxSession == link.tmuxSession }?.sessionId
+                if let a = self.agents.first(where: { $0.gateHost == host && $0.gateTmux == link.tmuxSession })
+                    ?? (host == .mac ? self.agents.first { $0.isAlive && $0.gateHost == nil && $0.sessionId != nil && $0.sessionId == held } : nil) {
+                    if !Self.open(a) {
+                        Self.linkAlert("The session did not open", "Topaz could not open a tab for \(link.tmuxSession).")
                     }
+                } else {
+                    let alert = link.notFound(answered: GateLive.answered(host))
+                    Self.linkAlert(alert.message, alert.detail)
                 }
             }
         }

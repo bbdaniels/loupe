@@ -435,6 +435,8 @@ private struct AgentRow: View {
             .buttonStyle(.borderless)
             .help(agent.isIMac
                   ? "Attach in a terminal on the iMac (tmux)"
+                  : agent.gateHost == .mac
+                  ? "Attach in a terminal tab (tmux)"
                   : agent.isRemoteControl
                   ? "Open on claude.ai"
                   : "Attach in a terminal tab (claude attach \(agent.id))")

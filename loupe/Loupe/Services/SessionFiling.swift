@@ -159,6 +159,9 @@ struct ClaudeSessionRecord: Equatable {
     /// The tmux pane the session runs in, as "<session>:@<window>.%<pane>",
     /// when it runs in one (the iMac's pi-gate sessions do).
     var tmux: String? = nil
+    /// The tmux server holding that pane, as the gate's `live` names it:
+    /// "pi-gate" for a session the gate runs (`tmux -L pi-gate`).
+    var tmuxServer: String? = nil
     /// Set by the iMac's gate (`live`) on a session that is a service, not
     /// Ben's work: "duet", the runner's Duet session, which systemd starts
     /// again whenever it ends (2026-11-06). Loupe lists no such session
@@ -170,6 +173,11 @@ struct ClaudeSessionRecord: Equatable {
     /// "sdk-cli", no daemon job) with a bridge id. Daemon background jobs and
     /// terminal sessions also carry a bridge id once Remote Control is on for
     /// every session; they are not these, since they have a window or a job.
+    /// The tmux session the pane is in: `tmux` up to its first colon.
+    var tmuxSession: String? {
+        tmux.flatMap { $0.split(separator: ":").first.map(String.init) }
+    }
+
     var isRemoteControlChild: Bool {
         bridgeSessionId != nil && entrypoint == "sdk-cli" && jobId == nil && kind == "interactive"
     }
@@ -214,7 +222,7 @@ enum ClaudeSessionRecords {
             status: string("status"), waitingFor: string("waitingFor"),
             startedAt: millis("startedAt"), updatedAt: millis("updatedAt"),
             procStart: string("procStart"), tmux: string("tmux"),
-            service: string("service"))
+            tmuxServer: string("tmuxServer"), service: string("service"))
     }
 
     /// Every record in `dir` whose process is still the one that wrote it.

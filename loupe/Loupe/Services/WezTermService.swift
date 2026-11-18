@@ -72,6 +72,16 @@ enum WezTerm {
         return "\(session)\t\(Int((at.timeIntervalSince1970 * 1000).rounded()))\n"
     }
 
+    /// The argv of a tab attached to a session the MacBook's gate runs: the
+    /// gate's own attach (`live`'s `attach`), `tmux -L pi-gate attach -t
+    /// =rc-<name>`, in a login shell, which has tmux on its path. The target
+    /// is quoted, since zsh reads a bare `=word` as a command's path. Nil
+    /// unless `session` is a gate session, as for `openRequest`.
+    static func macGateAttachArgv(session: String) -> [String]? {
+        guard session.hasPrefix("rc-"), IMacLauncher.isGateName(session.dropFirst(3)) else { return nil }
+        return shellArgv("exec tmux -L \(GateLive.tmuxServer) attach -t " + IMacLauncher.shellQuote("=" + session))
+    }
+
     /// The title of a tab for a session on this Mac.
     static func macTabTitle(project: String) -> String {
         "\(project.isEmpty ? "Claude" : project) (Mac)"
@@ -79,8 +89,11 @@ enum WezTerm {
 
     /// The tab each attached session is in, by its attach key
     /// (`AgentsService.attachKey`): an iMac session by its tab's title, its
-    /// tmux session name; a Mac session by the terminal of its
-    /// `claude attach <short>` process (`attachClients`, short and ps tty).
+    /// tmux session name; a Mac session by the terminal of its attach
+    /// process (`attachClients`, key and ps tty): `claude attach <short>`
+    /// for a daemon session, keyed by the short id, and `tmux -L pi-gate
+    /// attach` for a session of the MacBook's gate, keyed by
+    /// `AgentsService.gateAttachKey`.
     static func attaches(panes: [Pane], attachClients: [(short: String, tty: String)],
                          iMacKey: (String) -> String) -> [String: Pane] {
         var out: [String: Pane] = [:]

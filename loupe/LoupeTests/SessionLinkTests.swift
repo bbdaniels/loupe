@@ -58,4 +58,20 @@ final class SessionLinkTests: XCTestCase {
             XCTAssertNil(parse(s), s)
         }
     }
+
+    /// A link's machine is the one whose gate is asked, and what the alert
+    /// says when the session has no line there names that machine.
+    func testALinkAsksItsOwnMachineAndSaysWhenTheSessionIsNotThere() throws {
+        let mac = try XCTUnwrap(parse("topaz://session/mac/land-1118"))
+        let iMac = try XCTUnwrap(parse("topaz://session/imac/land-1118"))
+        XCTAssertEqual(mac.sessionHost, .mac)
+        XCTAssertEqual(iMac.sessionHost, .iMac)
+        XCTAssertEqual(mac.notFound(answered: true).message, "The session is not running on the MacBook")
+        XCTAssertEqual(iMac.notFound(answered: true).message, "The session is not running on the iMac")
+        XCTAssertEqual(mac.notFound(answered: false).message, "The MacBook did not answer")
+        XCTAssertEqual(iMac.notFound(answered: false).message, "The iMac did not answer")
+        XCTAssertTrue(mac.notFound(answered: true).detail.contains("rc-land-1118"))
+        XCTAssertTrue(mac.notFound(answered: false).detail.contains("pi-gate"))
+        XCTAssertTrue(iMac.notFound(answered: false).detail.contains("ssh"))
+    }
 }

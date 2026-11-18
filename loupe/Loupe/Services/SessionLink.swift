@@ -27,8 +27,26 @@ struct SessionLink: Equatable {
     let host: Host
     let name: String
 
-    /// The tmux session the gate runs it in, the iMac row's `iMacTmux`.
+    /// The tmux session the gate runs it in, the row's `gateTmux`.
     var tmuxSession: String { "rc-" + name }
+
+    /// The machine whose gate runs it.
+    var sessionHost: SessionHost { host == .iMac ? .iMac : .mac }
+
+    /// What the alert says when no line of `sessionHost` holds the session:
+    /// its gate did not answer (`answered` false), or it answered and the
+    /// session is not among its live ones.
+    func notFound(answered: Bool) -> (message: String, detail: String) {
+        let machine = sessionHost.machine
+        if !answered {
+            return ("The \(machine) did not answer",
+                    sessionHost == .iMac
+                        ? "It is asleep, offline, or refused ssh, so \(tmuxSession) could not be found."
+                        : "Its gate (~/bin/pi-gate) did not run or answer, so \(tmuxSession) could not be found.")
+        }
+        return ("The session is not running on the \(machine)",
+                "No live session \(tmuxSession): it has ended, or the link names one that never ran.")
+    }
 
     /// The session `url` names; nil for anything else.
     static func parse(_ url: URL) -> SessionLink? {

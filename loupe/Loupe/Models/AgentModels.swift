@@ -230,12 +230,13 @@ struct AgentSession: Identifiable, Equatable {
     /// page in the browser instead of raising a window.
     var remoteControlURL: URL? = nil
 
-    /// Set only on an iMac row: the tmux session on the iMac that holds it,
-    /// which a click attaches a WezTerm tab to over ssh. Nil for an iMac
-    /// session with no terminal (one the Remote Control server spawned from
-    /// the phone or claude.ai), which a click first moves into the gate's
-    /// tmux with the gate's `adopt` (AgentsService.open).
-    var iMacTmux: String? = nil
+    /// Set only on a gate row (`gateHost`): the tmux session that holds it on
+    /// its machine, which a click attaches a Topaz tab to (over ssh for the
+    /// iMac, directly for the MacBook). Nil for an iMac session with no
+    /// terminal (one the Remote Control server spawned from the phone or
+    /// claude.ai), which a click first moves into the gate's tmux with the
+    /// gate's `adopt` (AgentsService.open).
+    var gateTmux: String? = nil
     /// The session's title, the one History shows (`SessionScan.sidecarTitle`),
     /// set by `AgentsService.reload` for a live session; nil when none is
     /// written yet.
@@ -248,11 +249,23 @@ struct AgentSession: Identifiable, Equatable {
     var workOut: Bool = false
     /// True for a Remote Control session row (see `remoteControlURL`).
     var isRemoteControl: Bool { remoteControlURL != nil }
-    /// True for a session running on the iMac (`AgentsService.reload`).
-    var isIMac: Bool { template == "imac" }
+    /// The `template` of a row listed from a machine's gate (`GateLive`).
+    static func gateTemplate(_ host: SessionHost) -> String {
+        switch host {
+        case .mac: return "mac-gate"
+        case .iMac: return "imac"
+        }
+    }
+    /// The machine whose gate listed this row (`AgentsService.reload`); nil
+    /// for a daemon job and for a phone-started session on this Mac.
+    var gateHost: SessionHost? {
+        SessionHost.allCases.first { template == Self.gateTemplate($0) }
+    }
+    /// True for a session running on the iMac.
+    var isIMac: Bool { gateHost == .iMac }
     /// The daemon's verbs (logs, stop, respawn, remove) address a Mac job
-    /// id: neither a phone row nor an iMac row has one.
-    var hasDaemonJob: Bool { !isRemoteControl && !isIMac }
+    /// id: neither a phone row nor a gate row has one.
+    var hasDaemonJob: Bool { !isRemoteControl && gateHost == nil }
 
     /// Raw daemon-derived state (activity truth, ignores window-openness).
     var display: AgentDisplayState {

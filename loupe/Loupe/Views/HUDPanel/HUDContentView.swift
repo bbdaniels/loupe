@@ -919,7 +919,7 @@ func launchClaudeSession(prompt: String? = nil, resume: String? = nil, name: Str
         await MainActor.run {
             switch outcome {
             case .running(let answer):
-                IMacLive.refresh(force: true)
+                GateLive.refresh(.iMac, force: true)
                 // Topaz's config opens the tab (or focuses the one it has).
                 WezTerm.openIMac(session: IMacLauncher.tabTitle(answer))
             case .notOnIMac(let reason):
@@ -1103,7 +1103,7 @@ struct SessionDetailRow: View {
             feedback = "Checking the iMac…"
             let id = session.id
             DispatchQueue.global(qos: .userInitiated).async {
-                let live = IMacLive.fetch()
+                let live = GateLive.fetch(.iMac)
                 DispatchQueue.main.async {
                     guard let live else { refuse("The iMac did not answer"); return }
                     let ownName = IMacLauncher.resumeName(project: projectName, sessionId: id)

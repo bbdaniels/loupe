@@ -116,4 +116,35 @@ final class WezTermServiceTests: XCTestCase {
                                           "WEZTERM_PANE": "8"])
         XCTAssertEqual(env, ["HOME": "/Users/u", "PATH": "/usr/bin"])
     }
+
+    /// A MacBook gate session's tab runs the gate's own attach in a login
+    /// shell, its target quoted (zsh reads a bare `=word` as a command's path).
+    func testAMacBookGateSessionsTabRunsTheGatesAttach() {
+        XCTAssertEqual(WezTerm.macGateAttachArgv(session: "rc-land-1118"),
+                       ["/bin/zsh", "-l", "-c",
+                        "source ~/.zshrc 2>/dev/null; unset CLAUDECODE; exec tmux -L pi-gate attach -t '=rc-land-1118'"])
+        for bad in ["land-1118", "rc-", "rc-Land", "rc-a b", "rc-a;rm", "rc-" + String(repeating: "a", count: 41)] {
+            XCTAssertNil(WezTerm.macGateAttachArgv(session: bad), bad)
+        }
+    }
+
+    /// That attach is found again by its command line, as ps prints it, and
+    /// its tab by its terminal; an ssh to the iMac carrying the same words is
+    /// not an attach on this Mac.
+    func testAMacBookGateAttachIsFoundInItsTab() throws {
+        XCTAssertEqual(IMacLauncher.localGateAttach(command: "tmux -L pi-gate attach -t =rc-land-1118"), "rc-land-1118")
+        XCTAssertEqual(IMacLauncher.localGateAttach(command: "/opt/homebrew/bin/tmux -L pi-gate attach-session -t rc-land-1118:0"),
+                       "rc-land-1118")
+        for other in ["/usr/bin/ssh -t imac tmux -L pi-gate attach -t =rc-land-1118",
+                      "/bin/sh -c n=0 while :; do /usr/bin/ssh -t imac 'tmux -L pi-gate attach -t =rc-x' done",
+                      "tmux attach -t =rc-land-1118", "tmux -L other attach -t =rc-land-1118",
+                      "tmux -L pi-gate attach -t =pi-gate-keep", "tmux -L pi-gate new-session -d -s rc-x -t rc-y",
+                      "tmux -L pi-gate attach", "claude attach 06b55469", ""] {
+            XCTAssertNil(IMacLauncher.localGateAttach(command: other), other)
+        }
+        let panes = try XCTUnwrap(WezTerm.parsePanes(listed))
+        let found = WezTerm.attaches(panes: panes, attachClients: [("mac-tmux:rc-land-1118", "ttys002")],
+                                     iMacKey: { "imac-tmux:" + $0 })
+        XCTAssertEqual(found["mac-tmux:rc-land-1118"]?.tabId, 3)
+    }
 }

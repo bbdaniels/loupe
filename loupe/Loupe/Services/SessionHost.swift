@@ -14,6 +14,14 @@ enum SessionHost: String, CaseIterable, Sendable {
     case mac
     case iMac
 
+    /// The machine as Ben reads it on a session's line and in an alert.
+    var machine: String {
+        switch self {
+        case .mac: return "MacBook"
+        case .iMac: return "iMac"
+        }
+    }
+
     /// The iMac's home directory, where its `~/.claude` and `~/Projects` live.
     static let iMacHome = "/home/bbdaniels"
 
@@ -203,20 +211,25 @@ enum IMacMirror {
     }
 }
 
-// MARK: - The iMac's live sessions
+// MARK: - A gate's live sessions
 
-/// The iMac's running Claude Code sessions, from its gate's `live` verb
-/// (`ssh imac ~/bin/pi-gate live`): the CLI's own `~/.claude/sessions/<pid>.json`
-/// records whose process still runs, each checked there against its process's
-/// start time. Read-only toward the iMac.
+/// The running Claude Code sessions of one machine, from its gate's `live`
+/// verb (`~/bin/pi-gate live`, run here for the MacBook and over ssh for the
+/// iMac: `HostProcs.runGate`): the CLI's own `~/.claude/sessions/<pid>.json`
+/// records whose process still runs, each checked there against its
+/// process's start time, with the tmux session that holds it. Read-only
+/// toward both machines. One implementation, the machine its parameter.
 ///
-/// `cached` is what the last fetch returned and when; `refresh` fetches again
-/// off the main thread at most every `interval` seconds, so the Agents poll
-/// (every 2 s) never waits on ssh. `fetch` blocks and answers fresh, for the
-/// History resume guard. A failed fetch (the iMac asleep, ssh refused) keeps
-/// nothing: an empty list, so a stale row never claims a session is running.
-enum IMacLive {
+/// `cached` is what the last fetch returned; `refresh` fetches again off the
+/// main thread at most every `interval` seconds, so the Agents poll (every
+/// 2 s) never waits on a gate. `fetch` blocks and answers fresh, for the
+/// History resume guard. A failed fetch (the iMac asleep, ssh refused, the
+/// gate missing) keeps nothing: an empty list, so a stale row never claims a
+/// session is running.
+enum GateLive {
     static let interval: TimeInterval = 10
+    /// The tmux server every gate runs its sessions on (`tmux -L pi-gate`).
+    static let tmuxServer = "pi-gate"
 
     /// The gate's answer, read: each element of `live` as a record. Nil when
     /// the answer is not the gate's (`ok` missing or false).
@@ -229,84 +242,99 @@ enum IMacLive {
         }
     }
 
-    /// One fetch over ssh. Blocks up to about 10 s: call it off the main thread.
-    static func fetch() -> [ClaudeSessionRecord]? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/ssh")
-        process.arguments = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
-                             IMacLauncher.sshHost, IMacLauncher.gatePath + " live"]
-        let output = Pipe()
-        process.standardInput = FileHandle.nullDevice
-        process.standardOutput = output
-        process.standardError = FileHandle.nullDevice
-        do { try process.run() } catch { return nil }
-        let finished = DispatchSemaphore(value: 0)
-        var data = Data()
-        DispatchQueue.global(qos: .utility).async {
-            data = output.fileHandleForReading.readDataToEndOfFile()
-            finished.signal()
+    /// The records of `host`'s answer that get a line of their own, in the
+    /// gate's order. Everywhere: Ben's interactive sessions, never a service
+    /// (the runner's Duet session, `service` from the gate, is not his work:
+    /// 2026-11-06, "hide it"), and a session id once.
+    ///
+    /// The iMac: every such session, with or without a tmux session (one the
+    /// phone started has none until a click adopts it). The MacBook: only a
+    /// session the gate itself runs, in a tmux session `rc-<name>` of its
+    /// own server, since the MacBook's other sessions are listed from their
+    /// own sources (a daemon job, a phone-started session) and a terminal
+    /// session Ben started by hand is in front of him already. `listed` is
+    /// the session ids those sources already gave a live line on that
+    /// machine: such a session is left out here, so none is listed twice.
+    static func rows(host: SessionHost, records: [ClaudeSessionRecord],
+                     listed: Set<String> = []) -> [ClaudeSessionRecord] {
+        var seen = listed
+        return records.filter { r in
+            guard r.kind == "interactive", r.service == nil else { return false }
+            if host == .mac {
+                guard r.tmuxServer == tmuxServer, let session = r.tmuxSession,
+                      session.hasPrefix("rc-"), IMacLauncher.isGateName(session.dropFirst(3)) else { return false }
+            }
+            return seen.insert(r.sessionId).inserted
         }
-        if finished.wait(timeout: .now() + 10) == .timedOut {
-            process.terminate()
-            finished.wait()
-        }
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else { return nil }
-        return records(from: data)
+    }
+
+    /// One fetch from `host`'s gate. Blocks up to about 10 s: call it off
+    /// the main thread.
+    static func fetch(_ host: SessionHost) -> [ClaudeSessionRecord]? {
+        guard let r = HostProcs.runGate(host, ["live"], timeout: 10), r.status == 0 else { return nil }
+        return records(from: r.stdout)
+    }
+
+    private struct State {
+        var last: [ClaudeSessionRecord] = []
+        var answered = false
+        var fetchedAt: Date?
+        var fetching = false
+        /// The `done` of each forced refresh asked for while a fetch ran: they
+        /// get a fetch started after it, since that one may predate what they
+        /// wait for (a session just started, a link just clicked).
+        var waiting: [@Sendable () -> Void] = []
     }
 
     private static let lock = NSLock()
-    private static var last: [ClaudeSessionRecord] = []
-    private static var lastAnswered = false
-    private static var fetchedAt: Date?
-    private static var fetching = false
-    /// The `done` of each forced refresh asked for while a fetch ran: they
-    /// get a fetch started after it, since that one may predate what they
-    /// wait for (a session just started, a link just clicked).
-    private static var waiting: [@Sendable () -> Void] = []
+    private static var states: [SessionHost: State] = [:]
 
     /// The last fetch's records ([] before the first and after a failure).
-    static var cached: [ClaudeSessionRecord] {
+    static func cached(_ host: SessionHost) -> [ClaudeSessionRecord] {
         lock.lock(); defer { lock.unlock() }
-        return last
+        return states[host]?.last ?? []
     }
 
     /// Whether the last fetch had the gate's answer, so an empty `cached`
-    /// can be told from an iMac that did not answer.
-    static var answered: Bool {
+    /// can be told from a machine that did not answer.
+    static func answered(_ host: SessionHost) -> Bool {
         lock.lock(); defer { lock.unlock() }
-        return lastAnswered
+        return states[host]?.answered ?? false
     }
 
     /// Start a fetch in the background when the last is older than
     /// `interval` and none is running; `done` runs on the main queue after it.
-    /// `force` skips the interval: right after a session starts on the iMac,
-    /// so it is listed in seconds, not ten. A forced refresh while a fetch
-    /// runs waits for the next fetch, which starts when that one ends; an
-    /// unforced one is dropped, as the poll's next turn asks again.
-    static func refresh(force: Bool = false, done: @escaping @Sendable () -> Void = {}) {
+    /// `force` skips the interval: right after a session starts, so it is
+    /// listed in seconds, not ten. A forced refresh while a fetch runs waits
+    /// for the next fetch, which starts when that one ends; an unforced one
+    /// is dropped, as the poll's next turn asks again.
+    static func refresh(_ host: SessionHost, force: Bool = false, done: @escaping @Sendable () -> Void = {}) {
         lock.lock()
-        if fetching {
-            if force { waiting.append(done) }
+        var state = states[host] ?? State()
+        if state.fetching {
+            if force { state.waiting.append(done); states[host] = state }
             lock.unlock(); return
         }
-        if !force && (fetchedAt.map { Date().timeIntervalSince($0) < interval } ?? false) {
+        if !force && (state.fetchedAt.map { Date().timeIntervalSince($0) < interval } ?? false) {
             lock.unlock(); return
         }
-        fetching = true
+        state.fetching = true
+        states[host] = state
         lock.unlock()
-        DispatchQueue.global(qos: .utility).async { fetchLoop([done]) }
+        DispatchQueue.global(qos: .utility).async { fetchLoop(host, [done]) }
     }
 
-    private static func fetchLoop(_ first: [@Sendable () -> Void]) {
+    private static func fetchLoop(_ host: SessionHost, _ first: [@Sendable () -> Void]) {
         var callers = first
         while true {
-            let got = fetch()
+            let got = fetch(host)
             lock.lock()
-            last = got ?? []; lastAnswered = got != nil; fetchedAt = Date()
-            let next = waiting
-            waiting = []
-            if next.isEmpty { fetching = false }
+            var state = states[host] ?? State()
+            state.last = got ?? []; state.answered = got != nil; state.fetchedAt = Date()
+            let next = state.waiting
+            state.waiting = []
+            if next.isEmpty { state.fetching = false }
+            states[host] = state
             lock.unlock()
             let now = callers
             DispatchQueue.main.async { now.forEach { $0() } }

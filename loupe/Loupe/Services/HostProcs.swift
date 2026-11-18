@@ -64,7 +64,7 @@ struct HostProcsSnapshot: Equatable, Sendable {
 
 /// The poll of both gates' `procs`: this Mac's `~/bin/pi-gate` run here and
 /// the iMac's over ssh, in the background every `interval`, the way
-/// `IMacLive` polls `live`. The Mac's scan cannot read the environment of
+/// `GateLive` polls `live`. The Mac's scan cannot read the environment of
 /// Apple's own binaries (`/bin/bash`, `/bin/sleep`), so a tree there is found
 /// by its first non-Apple process; an empty list on the Mac is not proof that
 /// nothing is left.
