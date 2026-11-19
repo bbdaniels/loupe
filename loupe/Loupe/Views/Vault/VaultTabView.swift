@@ -734,7 +734,7 @@ extension LiveSessionLine {
 /// turns grey (`SessionLight.noTab`). Once the × is pressed the name is
 /// struck through until the session is gone (Ben, 2026-11-08: "when
 /// something is truly being closed out, strikethrough text"), or until
-/// `IMacLauncher.stopDeadline` passes with it still listed, when the
+/// `IMacLauncher.stopDeadline` passes with it still running, when the
 /// strikethrough clears and an alert says it did not stop.
 struct SessionLineView: View {
     let line: LiveSessionLine
@@ -811,7 +811,7 @@ struct SessionLineView: View {
     }
 
     /// The × never fails silently (Ben, 2026-11-08): the gate's refusal, or a
-    /// session still listed `IMacLauncher.stopDeadline` after the gate said
+    /// session still running `IMacLauncher.stopDeadline` after the gate said
     /// it had stopped, clears the strikethrough and says why.
     private func stop() {
         guard let sid = line.sessionId else { return }
@@ -823,7 +823,7 @@ struct SessionLineView: View {
                 try? await Task.sleep(nanoseconds: UInt64(IMacLauncher.stopDeadline * 1_000_000_000))
             }
             await MainActor.run {
-                let listed = agents.agents.contains { $0.sessionId == sid }
+                let listed = IMacLauncher.stillRunning(sid, rows: agents.agents.map { ($0.sessionId, $0.isAlive) })
                 guard let failure = IMacLauncher.stopFailure(refused: refused, stillListed: listed) else { return }
                 stopping = false
                 let alert = NSAlert()

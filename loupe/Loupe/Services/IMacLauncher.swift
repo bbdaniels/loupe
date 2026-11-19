@@ -248,8 +248,18 @@ enum IMacLauncher {
     /// started again within about 10 s, and its row stayed struck through.
     static let stopDeadline: TimeInterval = 15
 
+    /// Whether a session is still running, given each listed row's session
+    /// id and whether a process holds it. Only a live row counts: a MacBook
+    /// background session stopped with `claude stop` keeps its job record,
+    /// and so a row with its session id, after its process is gone
+    /// (2026-11-18: two such stops each raised "The session did not stop").
+    static func stillRunning(_ sessionId: String, rows: [(sessionId: String?, isAlive: Bool)]) -> Bool {
+        rows.contains { $0.isAlive && $0.sessionId == sessionId }
+    }
+
     /// Why a stop failed, or nil when it worked: the gate's refusal, or a
-    /// session still listed `stopDeadline` after the gate said it stopped.
+    /// session still running (`stillRunning`) `stopDeadline` after the gate
+    /// said it stopped.
     static func stopFailure(refused: String?, stillListed: Bool) -> String? {
         if let refused { return refused }
         guard stillListed else { return nil }

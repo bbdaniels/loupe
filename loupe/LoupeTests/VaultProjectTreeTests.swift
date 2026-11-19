@@ -272,6 +272,16 @@ final class SessionLightTests: XCTestCase {
         XCTAssertEqual(IMacLauncher.stopFailure(refused: nil, stillListed: true),
                        "the gate said it stopped, but it was still running 15 seconds later")
     }
+
+    /// 2026-11-18: a MacBook background session stopped with `claude stop`
+    /// keeps its job record, so a dead row with its session id stays listed;
+    /// each such stop raised the alert though the session had stopped.
+    func testAStoppedSessionsDeadRowIsNotStillRunning() {
+        XCTAssertFalse(IMacLauncher.stillRunning("a", rows: [(sessionId: "a", isAlive: false), (sessionId: "b", isAlive: true)]))
+        XCTAssertTrue(IMacLauncher.stillRunning("a", rows: [(sessionId: "a", isAlive: false), (sessionId: "a", isAlive: true)]))
+        XCTAssertFalse(IMacLauncher.stillRunning("a", rows: [(sessionId: nil, isAlive: true)]))
+        XCTAssertFalse(IMacLauncher.stillRunning("a", rows: []))
+    }
 }
 
 /// What rescans the Projects list, and the daily note built from the scan.
