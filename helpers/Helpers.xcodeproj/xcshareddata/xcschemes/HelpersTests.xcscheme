@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "B381CEF1A1BD0092DDE12E2B"
-               BuildableName = "LoupeTests.xctest"
-               BlueprintName = "LoupeTests"
-               ReferencedContainer = "container:Loupe.xcodeproj">
+               BlueprintIdentifier = "61EB96E5EFD58AA343920414"
+               BuildableName = "HelpersTests.xctest"
+               BlueprintName = "HelpersTests"
+               ReferencedContainer = "container:Helpers.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -32,10 +32,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "B381CEF1A1BD0092DDE12E2B"
-            BuildableName = "LoupeTests.xctest"
-            BlueprintName = "LoupeTests"
-            ReferencedContainer = "container:Loupe.xcodeproj">
+            BlueprintIdentifier = "61EB96E5EFD58AA343920414"
+            BuildableName = "HelpersTests.xctest"
+            BlueprintName = "HelpersTests"
+            ReferencedContainer = "container:Helpers.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -44,10 +44,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "B381CEF1A1BD0092DDE12E2B"
-               BuildableName = "LoupeTests.xctest"
-               BlueprintName = "LoupeTests"
-               ReferencedContainer = "container:Loupe.xcodeproj">
+               BlueprintIdentifier = "61EB96E5EFD58AA343920414"
+               BuildableName = "HelpersTests.xctest"
+               BlueprintName = "HelpersTests"
+               ReferencedContainer = "container:Helpers.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -67,10 +67,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "B381CEF1A1BD0092DDE12E2B"
-            BuildableName = "LoupeTests.xctest"
-            BlueprintName = "LoupeTests"
-            ReferencedContainer = "container:Loupe.xcodeproj">
+            BlueprintIdentifier = "61EB96E5EFD58AA343920414"
+            BuildableName = "HelpersTests.xctest"
+            BlueprintName = "HelpersTests"
+            ReferencedContainer = "container:Helpers.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <CommandLineArguments>
@@ -87,10 +87,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "B381CEF1A1BD0092DDE12E2B"
-            BuildableName = "LoupeTests.xctest"
-            BlueprintName = "LoupeTests"
-            ReferencedContainer = "container:Loupe.xcodeproj">
+            BlueprintIdentifier = "61EB96E5EFD58AA343920414"
+            BuildableName = "HelpersTests.xctest"
+            BlueprintName = "HelpersTests"
+            ReferencedContainer = "container:Helpers.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
    </ProfileAction>

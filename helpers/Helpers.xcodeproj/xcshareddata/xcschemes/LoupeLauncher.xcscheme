@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "1B416C9FAA371007BAA05CD4"
-               BuildableName = "TopazLauncher.app"
-               BlueprintName = "TopazLauncher"
-               ReferencedContainer = "container:Loupe.xcodeproj">
+               BlueprintIdentifier = "E98D96F78247384643898B71"
+               BuildableName = "LoupeLauncher.app"
+               BlueprintName = "LoupeLauncher"
+               ReferencedContainer = "container:Helpers.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -32,10 +32,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "1B416C9FAA371007BAA05CD4"
-            BuildableName = "TopazLauncher.app"
-            BlueprintName = "TopazLauncher"
-            ReferencedContainer = "container:Loupe.xcodeproj">
+            BlueprintIdentifier = "E98D96F78247384643898B71"
+            BuildableName = "LoupeLauncher.app"
+            BlueprintName = "LoupeLauncher"
+            ReferencedContainer = "container:Helpers.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -57,10 +57,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "1B416C9FAA371007BAA05CD4"
-            BuildableName = "TopazLauncher.app"
-            BlueprintName = "TopazLauncher"
-            ReferencedContainer = "container:Loupe.xcodeproj">
+            BlueprintIdentifier = "E98D96F78247384643898B71"
+            BuildableName = "LoupeLauncher.app"
+            BlueprintName = "LoupeLauncher"
+            ReferencedContainer = "container:Helpers.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -76,10 +76,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "1B416C9FAA371007BAA05CD4"
-            BuildableName = "TopazLauncher.app"
-            BlueprintName = "TopazLauncher"
-            ReferencedContainer = "container:Loupe.xcodeproj">
+            BlueprintIdentifier = "E98D96F78247384643898B71"
+            BuildableName = "LoupeLauncher.app"
+            BlueprintName = "LoupeLauncher"
+            ReferencedContainer = "container:Helpers.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
