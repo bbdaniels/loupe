@@ -837,7 +837,7 @@ mod reload_hook_test {
     use super::*;
 
     /// A reload hook that reads the config (as most do) must not wait on the
-    /// config lock the reload holds; it once froze Topaz on every reload.
+    /// config lock the reload holds; it once froze Loupe on every reload.
     #[test]
     fn a_reload_hook_can_read_the_config() {
         let dir = std::env::temp_dir().join(format!("reload-hook-{}", std::process::id()));

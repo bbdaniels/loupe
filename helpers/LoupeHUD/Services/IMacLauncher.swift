@@ -1,6 +1,6 @@
 import Foundation
 
-/// Starts Loupe's Claude sessions on the iMac, through the iMac's one
+/// Starts LoupeHUD's Claude sessions on the iMac, through the iMac's one
 /// launcher (Ben, 2026-11-03: every session lives on the iMac, and
 /// "claudehuds sessions should start that way").
 ///
@@ -202,7 +202,7 @@ enum IMacLauncher {
         ["-o", "BatchMode=yes", "-o", "ConnectTimeout=10", sshHost, remoteCommand(r)]
     }
 
-    /// The title of the session's Topaz tab: its tmux session, `rc-<name>`,
+    /// The title of the session's Loupe tab: its tmux session, `rc-<name>`,
     /// the title the config opens it under (`WezTerm.openIMac`).
     static func tabTitle(_ a: Answer) -> String { a.session }
 

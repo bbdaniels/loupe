@@ -1,24 +1,24 @@
 //! fn dictation in every app (Ben, 2026-11-08: "start dictation everywhere
 //! now too"). One listen-only event tap, on a thread of its own with its own
-//! run loop, hears fn in whatever app has the keyboard, so the Topaz window's
+//! run loop, hears fn in whatever app has the keyboard, so the Loupe window's
 //! own fn detector is gone and fn is heard once. Listen-only, it never holds
 //! a keystroke back, and on its own thread a busy GUI thread cannot slow it.
 //! At fn down the process that has the keyboard decides the sink (keys.rs,
-//! `Focus` and `target_for`): Topaz's focused pane through the mux, or
+//! `Focus` and `target_for`): Loupe's focused pane through the mux, or
 //! keyboard events posted to the other app. Not the frontmost app: a menu bar
-//! app's panel (Tot's) has the keyboard while Topaz stays in front, so the
+//! app's panel (Tot's) has the keyboard while Loupe stays in front, so the
 //! tap sits where the system has already routed each event (the annotated
 //! session tap) and reads the fn event's own target. One session runs at a
 //! time, process wide.
 //!
 //! The tap also hears every key and mouse button pressed from fn down until
 //! the final text is typed; any of them cancels the session, as a key in
-//! Topaz's window always did, so nothing is typed after Ben's own input or
-//! where a click moved the caret. The events Topaz posts carry
-//! `POSTED_BY_TOPAZ` in their source user data and are not taken for Ben's.
+//! Loupe's window always did, so nothing is typed after Ben's own input or
+//! where a click moved the caret. The events Loupe posts carry
+//! `POSTED_BY_LOUPE` in their source user data and are not taken for Ben's.
 //!
 //! Permissions (with a stable signature): the tap needs Input Monitoring,
-//! asked for when the tap starts (Topaz's launch with config.fn_dictation
+//! asked for when the tap starts (Loupe's launch with config.fn_dictation
 //! on); posting needs Accessibility, read afresh at every press
 //! (AXIsProcessTrusted, never kept) and asked for at a hold of fn in another
 //! app while it is missing.
@@ -31,7 +31,7 @@ use std::sync::{Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
 /// The one dictation of the process: fn down and up from the tap's thread,
-/// cancels from there and from Topaz's windows.
+/// cancels from there and from Loupe's windows.
 static DICTATION: Mutex<Dictation> = Mutex::new(Dictation::new());
 
 fn dictation() -> MutexGuard<'static, Dictation> {
@@ -40,7 +40,7 @@ fn dictation() -> MutexGuard<'static, Dictation> {
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
-/// A key went down in a Topaz window, or one lost focus: type nothing more.
+/// A key went down in a Loupe window, or one lost focus: type nothing more.
 pub fn cancel() {
     dictation().cancel();
 }
@@ -99,7 +99,7 @@ const OTHER_MOUSE_DOWN: u32 = 25;
 const TAP_DISABLED_BY_TIMEOUT: u32 = 0xFFFF_FFFE;
 const TAP_DISABLED_BY_USER_INPUT: u32 = 0xFFFF_FFFF;
 
-/// The source user data of the events Topaz posts ("Loup").
+/// The source user data of the events Loupe posts ("Loup").
 const POSTED_BY_LOUPE: i64 = 0x4C6F_7570;
 
 #[link(name = "CoreGraphics", kind = "framework")]
@@ -151,11 +151,11 @@ extern "C" {
 /// AVAuthorizationStatusAuthorized.
 const AV_AUTHORIZED: isize = 3;
 
-/// Log, once at launch, the permissions macOS applies to Topaz now, as
+/// Log, once at launch, the permissions macOS applies to Loupe now, as
 /// `permissions: Accessibility=yes ListenEvent=yes Microphone=yes`: what
 /// each check answers for this process, not what System Settings lists,
 /// since a grant made to an earlier signature stays listed but is never
-/// applied (Input Monitoring, 2026-11-08 to 2026-11-10). topaz-build.sh
+/// applied (Input Monitoring, 2026-11-08 to 2026-11-10). loupe-build.sh
 /// reads the line after an install; asks for nothing.
 pub fn log_permissions() {
     let yes = |granted: bool| if granted { "yes" } else { "no" };
@@ -371,7 +371,7 @@ fn fn_pressed(pressed: Instant, event_target: Option<i32>) {
     dictation().fn_down(move || Some(super::start(target, focus_at_press, keyterms, pressed)));
 }
 
-/// Who has the keyboard, read now (keys.rs `Focus`), and whether Topaz has
+/// Who has the keyboard, read now (keys.rs `Focus`), and whether Loupe has
 /// Accessibility, read afresh each time: the focused application is asked
 /// for only when it does.
 fn read_focus(event_target: Option<i32>) -> (keys::Focus, bool) {

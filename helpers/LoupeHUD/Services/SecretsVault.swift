@@ -10,7 +10,7 @@ private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "Sec
 /// lookup. Writes update the cache and then the item, in order, on a queue of
 /// their own, so the main thread never waits on the keychain. The item is read
 /// and written through /usr/bin/security (SecurityTool), whose Apple signature
-/// does not change with Loupe's builds, so one "Always Allow" holds across
+/// does not change with LoupeHUD's builds, so one "Always Allow" holds across
 /// rebuilds (Ben, 2026-11-08).
 final class SecretsVault: @unchecked Sendable {
     static let shared = SecretsVault()
@@ -24,7 +24,7 @@ final class SecretsVault: @unchecked Sendable {
     private let lock = NSLock()
     private var cached: Secrets?
 
-    /// Kept when the app became Loupe (2026-11-08): the item is read through
+    /// Kept when the app became Loupe (2026-11-08) and LoupeHUD (2026-11-20): the item is read through
     /// /usr/bin/security by this literal name, never by the bundle id, so the
     /// rename leaves it, and its access, where they were.
     private static let service = "com.claudehud.vault"

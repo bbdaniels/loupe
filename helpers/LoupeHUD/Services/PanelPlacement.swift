@@ -1,7 +1,7 @@
 import CoreGraphics
 
 /// Where the HUD panel opens (Ben, 2026-11-08): the full right third of the
-/// screen, beside Topaz, which takes the left two thirds. Never narrower than
+/// screen, beside Loupe, which takes the left two thirds. Never narrower than
 /// the panel's minimum width.
 enum PanelPlacement {
     static func rightThird(of visibleFrame: CGRect, minWidth: CGFloat) -> CGRect {

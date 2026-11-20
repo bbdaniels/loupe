@@ -203,7 +203,7 @@ final class RemoteControlServerService: ObservableObject {
         }
     }
 
-    /// `Loupe --remote-control on|off|status`. Returns the exit status.
+    /// `LoupeHUD --remote-control on|off|status`. Returns the exit status.
     nonisolated static func commandLine(_ verb: String) -> Int32 {
         var error: String?
         switch verb {

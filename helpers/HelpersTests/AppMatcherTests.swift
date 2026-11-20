@@ -1,6 +1,6 @@
 import XCTest
 
-/// Topaz Launcher's matching: application names only, ranked by how the
+/// Loupe Launcher's matching: application names only, ranked by how the
 /// query meets the name, then by use (Ben, 2026-11-08).
 final class AppMatcherTests: XCTestCase {
     private func c(_ name: String) -> AppMatcher.Candidate {

@@ -2,7 +2,7 @@ import XCTest
 
 /// MenuBarHiding: "Hide Other Menu Bar Items" holds macOS 27's menu bar
 /// allow-list (MenuBarClientCore's assessment-mode assertion) while it is on,
-/// letting only Loupe's items, Tot's and the system's show (Ben, 2026-11-08).
+/// letting only LoupeHUD's items, Tot's and the system's show (Ben, 2026-11-08).
 @MainActor
 final class MenuBarHidingTests: XCTestCase {
     /// Records each activation and answers when the test says so.

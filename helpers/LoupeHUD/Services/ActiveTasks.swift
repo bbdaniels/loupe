@@ -4,7 +4,7 @@ import Foundation
 // Projects tab scan (`VaultProject.parse`), whose open tasks also fill the
 // daily note (`DailyNote.content`). Foundation-only and free of app state
 // so the unit-test bundle compiles this file directly (see project.yml →
-// LoupeTests).
+// HelpersTests).
 
 // MARK: - ActiveTask model
 

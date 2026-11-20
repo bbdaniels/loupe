@@ -1,16 +1,16 @@
-//! Topaz's helpers: the apps nested in `Topaz.app/Contents/Helpers` that
-//! Topaz launches and keeps alive: Loupe and Topaz Launcher (Ben,
+//! Loupe's helpers: the apps nested in `Loupe.app/Contents/Helpers` that
+//! Loupe launches and keeps alive: LoupeHUD and Loupe Launcher (Ben,
 //! 2026-11-08: one app, one Dock icon). Each runs in its own process, so a crash or a rebuild of a
 //! helper never touches the terminal.
 //!
 //! `start` runs once, in the primary GUI process. One thread per helper
 //! launches it through LaunchServices (so macOS checks it under its own
-//! bundle id and it keeps its own permission grants), passing `TOPAZ_PID` so
-//! the helper exits when Topaz does; waits for it to exit (kqueue
+//! bundle id and it keeps its own permission grants), passing `LOUPE_PID` so
+//! the helper exits when Loupe does; waits for it to exit (kqueue
 //! `EVFILT_PROC` with `NOTE_EXIT`); and relaunches it after a backoff that
 //! starts at 0.5 seconds, doubles to 30, and starts over once a run has lasted
 //! 60 seconds. A copy of the helper that is already running is adopted, never
-//! doubled. `stop_all` sends each helper SIGTERM when Topaz terminates.
+//! doubled. `stop_all` sends each helper SIGTERM when Loupe terminates.
 
 use std::time::Duration;
 
@@ -199,7 +199,7 @@ mod imp {
     }
 
     /// Launches the app at `bundle` through LaunchServices, in the background
-    /// and with `TOPAZ_PID` added to its environment, and returns its pid.
+    /// and with `LOUPE_PID` added to its environment, and returns its pid.
     fn launch(bundle: &Path) -> anyhow::Result<i32> {
         let (tx, rx) = mpsc::channel::<Result<i32, String>>();
         autoreleasepool(|_| unsafe {

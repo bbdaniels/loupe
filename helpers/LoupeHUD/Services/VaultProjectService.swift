@@ -11,7 +11,7 @@ private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "Vau
 /// live-session badges use. The `## Active` task parser lives in
 /// `ActiveTasks.swift`.
 ///
-/// Architecture: see Projects/obsidian/Topaz/Technical Notes.md (ClaudeHUD/ until the vault folder moves)
+/// Architecture: see Projects/obsidian/Loupe/Technical Notes.md
 /// §Vault/Projects tab redistribution. The HUD is a window over the
 /// archive; this service does no synthesis — every value rendered in
 /// the Projects tab is a verbatim slice of a vault file.
@@ -33,7 +33,7 @@ final class VaultProjectService: ObservableObject {
     /// The cwd and session filing caches were resolved against the old
     /// claims and are emptied with it, and the views that prime them key
     /// their `.task` on it, so every live and History session is refiled
-    /// at once. Before 2026-11-08 the caches lived until Loupe restarted: a
+    /// at once. Before 2026-11-08 the caches lived until LoupeHUD restarted: a
     /// cwd cached as unclaimed stayed under General after a new project
     /// claimed it, and a session filed under a folder that moved vanished.
     @Published private(set) var filingGeneration = 0

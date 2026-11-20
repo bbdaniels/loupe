@@ -1,4 +1,4 @@
-//! A brief notice over a pane (Topaz, fn dictation): the message, centered,
+//! A brief notice over a pane (Loupe, fn dictation): the message, centered,
 //! for a few seconds or until any key or click.
 
 use mux::termwiztermtab::TermWizTerminal;

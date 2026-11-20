@@ -6,7 +6,7 @@ tags:
 
 # `tab_close_button_at_title_start = false`
 
-Topaz (fork) option. When `true`, and the fancy tab bar draws close buttons
+Loupe (fork) option. When `true`, and the fancy tab bar draws close buttons
 (see [show_close_tab_button_in_tabs](show_close_tab_button_in_tabs.md)), the
 first run of text that [format-tab-title](../window-events/format-tab-title.md)
 returns becomes the tab's close button: hovering it draws × in its place and

@@ -1,20 +1,20 @@
-//! Loupe's menu bar gem shows blue while a dictation is listening (Ben,
+//! LoupeHUD's menu bar gem shows blue while a dictation is listening (Ben,
 //! 2026-11-08): from the instant fn is pressed, posted on the fn tap's thread
 //! at the press (mod.rs `start`), before the session looks for its focused
 //! pane and before the microphone and the speech to text socket open
 //! (waiting for the connection made it lag the press by about half a second), until fn is released or the session ends
-//! however it ends (cancel, error, the service closing). Topaz tells
-//! Loupe with a distributed notification, `NOTIFICATION`, whose userInfo has
-//! `state` ("listening" or "stopped") and `pid` (Topaz's, which Loupe was
-//! given as TOPAZ_PID). While listening it is posted again every
-//! `REFRESH_EVERY`, the wait for the connection included, and Loupe turns
+//! however it ends (cancel, error, the service closing). Loupe tells
+//! LoupeHUD with a distributed notification, `NOTIFICATION`, whose userInfo has
+//! `state` ("listening" or "stopped") and `pid` (Loupe's, which LoupeHUD was
+//! given as LOUPE_PID). While listening it is posted again every
+//! `REFRESH_EVERY`, the wait for the connection included, and LoupeHUD turns
 //! the gem back on its own when no refresh comes in time, so a lost
 //! "stopped" cannot leave it blue.
 //!
 //! This is the state alone, without the posting, so that it can be tested.
 use std::time::{Duration, Instant};
 pub const NOTIFICATION: &str = "com.bbdaniels.loupe.dictation";
-/// Loupe reverts after 3 s without a refresh (DictationLight.swift).
+/// LoupeHUD reverts after 3 s without a refresh (DictationLight.swift).
 pub const REFRESH_EVERY: Duration = Duration::from_secs(1);
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum State {
@@ -122,7 +122,7 @@ mod tests {
     #[test]
     fn a_slow_connection_keeps_the_light_refreshed_from_the_press() {
         // The session lights it at the press and refreshes it while it waits
-        // for the socket (CONNECT_TIMEOUT is 3 s, Loupe's staleness too), so
+        // for the socket (CONNECT_TIMEOUT is 3 s, LoupeHUD's staleness too), so
         // the gem never lapses before the first word.
         let (posts, post) = recorded();
         let mut light = Light::new(post);

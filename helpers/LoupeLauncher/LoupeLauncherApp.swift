@@ -4,10 +4,10 @@ import os
 
 private let logger = Logger(subsystem: "com.bbdaniels.loupe.launcher", category: "App")
 
-/// Topaz Launcher: Topaz's application launcher (Command-Space) and Magnet's
-/// window snapping, as a helper Topaz starts from
-/// `Topaz.app/Contents/Helpers` and supervises (wezterm-gui `helpers.rs`).
-/// It has no Dock icon or menu; it quits when Topaz does.
+/// Loupe Launcher: Loupe's application launcher (Command-Space) and Magnet's
+/// window snapping, as a helper Loupe starts from
+/// `Loupe.app/Contents/Helpers` and supervises (wezterm-gui `helpers.rs`).
+/// It has no Dock icon or menu; it quits when Loupe does.
 @MainActor
 final class LauncherDelegate: NSObject, NSApplicationDelegate {
     /// Command-Space, since the cutover from Raycast on 2026-11-08.

@@ -6,7 +6,7 @@ options:
   xcodeVersion: "16.0"
   createIntermediateGroups: true
 
-# Code the Topaz helpers share (Loupe and Topaz Launcher).
+# Code the Loupe helpers share (LoupeHUD and Loupe Launcher).
 packages:
   LoupeKit:
     path: LoupeKit
@@ -29,8 +29,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.bbdaniels.loupe.hud
         PRODUCT_NAME: LoupeHUD
         MACOSX_DEPLOYMENT_TARGET: "14.0"
-        # Written by hand, not generated: it declares the .topazedit document
-        # type (EditRequest) and the topaz:// URL scheme (SessionLink).
+        # Written by hand, not generated: it declares the .loupeedit document
+        # type (EditRequest) and the loupe:// URL scheme (SessionLink).
         INFOPLIST_FILE: LoupeHUD/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: LoupeHUD/Resources/LoupeHUD.entitlements
         CODE_SIGN_IDENTITY: "Loupe Dev"
@@ -39,9 +39,9 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         ENABLE_DEBUG_DYLIB: NO
 
-  # Topaz Launcher: the application launcher (Option-Space) and Magnet's
-  # window snapping, nested in Topaz.app/Contents/Helpers and supervised by
-  # Topaz (wezterm-gui helpers.rs). Built by topaz-build.sh.
+  # Loupe Launcher: the application launcher (Option-Space) and Magnet's
+  # window snapping, nested in Loupe.app/Contents/Helpers and supervised by
+  # Loupe (wezterm-gui helpers.rs). Built by loupe-build.sh.
   LoupeLauncher:
     type: application
     platform: macOS
@@ -65,8 +65,8 @@ targets:
     scheme: {}
 
   # Unit tests for the pure, Foundation-only logic. No host app: the bundle
-  # compiles the sources it tests directly, so tests never launch Loupe.
-  # Run: xcodebuild test -scheme LoupeTests
+  # compiles the sources it tests directly, so tests never launch LoupeHUD.
+  # Run: xcodebuild test -scheme HelpersTests
   HelpersTests:
     type: bundle.unit-test
     platform: macOS

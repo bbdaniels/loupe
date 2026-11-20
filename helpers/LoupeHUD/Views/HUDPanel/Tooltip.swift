@@ -2,7 +2,7 @@ import SwiftUI
 
 // Custom, pure-SwiftUI tooltip.
 //
-// Why this exists instead of `.help()`: Loupe (an `.accessory` menubar
+// Why this exists instead of `.help()`: LoupeHUD (an `.accessory` menubar
 // agent until 2026-11-06, a regular app since) keeps its UI in an NSPanel hosted via NSHostingController. In that
 // configuration AppKit's tooltip subsystem (`NSView.toolTip`, which SwiftUI
 // `.help()` drives) never fires — verified empirically across hosting-view,

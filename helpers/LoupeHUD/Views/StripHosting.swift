@@ -11,7 +11,7 @@ import SwiftUI
 /// lying wholly inside that inset (the HUD header at 29 points, in a 32-point
 /// title bar) gets no clicks: the hosting view keeps every mouse-down for
 /// itself and AppKit moves the window instead (Ben, 2026-11-08: tabs, info and
-/// lock dead since the header shrank to Topaz's tab-bar height). With no safe
+/// lock dead since the header shrank to Loupe's tab-bar height). With no safe
 /// area, the header's controls take their clicks and its empty space reaches
 /// `WindowDragArea`, which moves the window.
 enum StripHosting {

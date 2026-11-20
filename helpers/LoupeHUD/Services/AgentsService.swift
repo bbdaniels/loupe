@@ -280,7 +280,7 @@ final class AgentsService: ObservableObject {
         // background every 10 s), so a project row shows the iMac's and the
         // MacBook gate's with the same badges as a daemon job's. The cwd is
         // mapped onto this Mac's checkout; no pid, so nothing here can signal
-        // a process; the tmux session, which a click attaches a Topaz tab to
+        // a process; the tmux session, which a click attaches a Loupe tab to
         // (never its claude.ai page: Ben, 2026-11-03, "claude.ai ... is never
         // the right place to land"). The stop, logs and remove menu stays
         // hidden. Which records get a line is `GateLive.rows`: a MacBook
@@ -412,7 +412,7 @@ final class AgentsService: ObservableObject {
 
     /// Dispatch a new background session in `directory` (the chosen project's
     /// repo root). Without a directory the daemon would root the session at
-    /// Loupe's cwd (`/`), so a target is required. Empty name → daemon
+    /// LoupeHUD's cwd (`/`), so a target is required. Empty name → daemon
     /// auto-names it.
     func dispatch(prompt: String, name: String, directory: String) {
         let p = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -586,7 +586,7 @@ final class AgentsService: ObservableObject {
     /// click, never the last one, which can name a tab closed since): that
     /// tab comes forward. Not open: a new tab running `claude attach` for a
     /// Mac daemon session and `tmux -L pi-gate attach` for a session of the
-    /// MacBook's gate; an iMac session's tab is Topaz's config's to
+    /// MacBook's gate; an iMac session's tab is Loupe's config's to
     /// focus or open (`WezTerm.openIMac`), so it is never opened twice. A
     /// session started from the phone or claude.ai on this Mac has no
     /// terminal anywhere (Remote Control spawns it headless), so it alone
@@ -639,7 +639,7 @@ final class AgentsService: ObservableObject {
         }
         if a.gateHost == .mac {
             // The MacBook gate's session: the gate's own attach, in a tab
-            // Loupe opens itself (the config opens tabs only for the iMac's
+            // LoupeHUD opens itself (the config opens tabs only for the iMac's
             // sessions), found again by the terminal that attach runs on.
             guard let tmux = a.gateTmux, let argv = WezTerm.macGateAttachArgv(session: tmux) else { return false }
             let project = URL(fileURLWithPath: a.cwd).lastPathComponent
@@ -667,7 +667,7 @@ final class AgentsService: ObservableObject {
         return Self.open(a)
     }
 
-    /// Open the session a `topaz://session/<host>/<name>` link names
+    /// Open the session a `loupe://session/<host>/<name>` link names
     /// (`SessionLink`, the morning email's links) as a click on its line
     /// does, on either machine: that machine's live sessions are fetched
     /// fresh, the list is read again, and the row whose tmux session is

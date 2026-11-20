@@ -1,41 +1,41 @@
 #!/bin/zsh
-# Build Topaz, Ben's fork of WezTerm (branch `dance`: Ghostty-style wobble in
-# the WebGpu shader), into /Applications/Topaz.app, the one terminal on this
-# Mac. Named Topaz on 2026-11-08 (Ben). The app is assembled as ci/deploy.sh
-# assembles WezTerm's own macOS release, renamed in its Info.plist only. The
+# Build Loupe, Ben's fork of WezTerm (branch `dance`: Ghostty-style wobble in
+# the WebGpu shader), into /Applications/Loupe.app, the one terminal on this
+# Mac. Named Topaz on 2026-11-08 and Loupe on 2026-11-20 (Ben). The app is
+# assembled as ci/deploy.sh assembles WezTerm's own macOS release, renamed
+# in its Info.plist only. The
 # binaries keep WezTerm's names (`wezterm`, `wezterm-gui`) and the config
 # stays at ~/.config/wezterm, so upstream merges stay clean and `wezterm cli`
 # keeps working.
 #
-# Topaz.app holds its helpers (2026-11-08): Loupe and Topaz Launcher, both
-# from loupe/ in this repository (merged in from bbdaniels/claudehud on
+# Loupe.app holds its helpers (2026-11-08): LoupeHUD and Loupe Launcher, both
+# from helpers/ in this repository (merged in from bbdaniels/claudehud on
 # 2026-11-08, history kept), are built here and nested in
-# Contents/Helpers, and Topaz launches them and keeps them alive
+# Contents/Helpers, and Loupe launches them and keeps them alive
 # (wezterm-gui/src/helpers.rs). This script is
 # the one way either is built and installed; it replaced
 # ~/Library/Caches/hud-install.sh.
 #
-#   ./topaz-build.sh               build, then install as --install does
-#   ./topaz-build.sh --update      first merge upstream main and update Rust
-#   ./topaz-build.sh --stage       build and sign into target/topaz/Topaz.app only
-#   ./topaz-build.sh --install     install the staged app: quit Topaz, replace
-#                                  /Applications/Topaz.app, install the config
-#                                  from ~/Projects/personal, reopen Topaz
-#   ./topaz-build.sh --helper loupe
-#                                  rebuild the helpers, replace Loupe inside
-#                                  the installed Topaz.app, re-sign that, and
-#                                  end the running Loupe so Topaz relaunches
-#                                  the new one; Topaz keeps running (`hud`,
-#                                  its name before 2026-11-08, still works)
-#   ./topaz-build.sh --helper launcher
-#                                  the same for Topaz Launcher (once a full
-#                                  build has installed a Topaz that has it)
+#   ./loupe-build.sh               build, then install as --install does
+#   ./loupe-build.sh --update      first merge upstream main and update Rust
+#   ./loupe-build.sh --stage       build and sign into target/loupe/Loupe.app only
+#   ./loupe-build.sh --install     install the staged app: quit Loupe, replace
+#                                  /Applications/Loupe.app, install the config
+#                                  from ~/Projects/personal, reopen Loupe
+#   ./loupe-build.sh --helper hud
+#                                  rebuild the helpers, replace LoupeHUD inside
+#                                  the installed Loupe.app, re-sign that, and
+#                                  end the running LoupeHUD so Loupe relaunches
+#                                  the new one; Loupe keeps running
+#   ./loupe-build.sh --helper launcher
+#                                  the same for Loupe Launcher (once a full
+#                                  build has installed a Loupe that has it)
 #
-# Signing: every binary with the "Topaz Dev" certificate and the hardened
-# runtime, inside out and without --deep (which would stamp Topaz's
-# entitlements on a helper): Loupe with its own entitlements, Topaz
-# Launcher with none, then Topaz's other binaries, then the outer bundle
-# with Topaz's. A stable signature keeps each permission (Topaz's
+# Signing: every binary with the "Loupe Dev" certificate and the hardened
+# runtime, inside out and without --deep (which would stamp Loupe's
+# entitlements on a helper): LoupeHUD with its own entitlements, Loupe
+# Launcher with none, then Loupe's other binaries, then the outer bundle
+# with Loupe's. A stable signature keeps each permission (Loupe's
 # microphone, each helper's Accessibility) across rebuilds; each helper
 # keeps its bundle id and its designated requirement, which is checked
 # against the installed copy, and after an install each app's report of the
@@ -43,13 +43,13 @@
 # Signing reads the keychain, which an ssh login cannot, so run this in a
 # window of the gate's tmux, for example:
 #   /opt/homebrew/bin/tmux -L pi-gate new-window -d -t pi-gate-keep \
-#     '~/Projects/topaz/topaz-build.sh --stage'
-# Quitting Topaz ends the shells in its tabs, so an install started in a
-# Topaz tab hands itself to a copy that outlives the tab and writes
-# ~/Library/Caches/topaz-build/install.log (install_staged). The
+#     '~/Projects/loupe/loupe-build.sh --stage'
+# Quitting Loupe ends the shells in its tabs, so an install started in a
+# Loupe tab hands itself to a copy that outlives the tab and writes
+# ~/Library/Caches/loupe-build/install.log (install_staged). The
 # config goes in after the app because config_builder() rejects keys an
 # older build does not know. Config: bbdaniels/personal, deploy/mac/wezterm.
-# The helpers' tests (loupe/, LoupeTests, both helpers') must pass, or nothing is
+# The helpers' tests (helpers/, HelpersTests, both helpers') must pass, or nothing is
 # built or installed.
 set -euo pipefail
 cd "${0:A:h}"
@@ -70,7 +70,7 @@ LOGS=$HOME/Library/Caches/loupe-build
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
 mkdir -p $LOGS
 
-# Test, then build Loupe and Topaz Launcher (Release) into $LOUPE_BUILT
+# Test, then build LoupeHUD and Loupe Launcher (Release) into $HUD_BUILT
 # and $LAUNCHER_BUILT.
 build_helpers() {
   ( cd $HELPERS_DIR
@@ -98,7 +98,7 @@ build_helpers() {
     fi )
 }
 
-# Copy the built Loupe into the app at $1 and sign it. It is signed in a
+# Copy the built LoupeHUD into the app at $1 and sign it. It is signed in a
 # scratch folder under its own name (codesign seals a folder not named .app
 # as a plain directory), then moved in whole.
 nest_hud() {
@@ -113,7 +113,7 @@ nest_hud() {
   mv $tmp/LoupeHUD.app $1/$HUD_IN
   rmdir $tmp
 }
-# The same for Topaz Launcher, which has no entitlements.
+# The same for Loupe Launcher, which has no entitlements.
 nest_launcher() {
   local tmp=$(mktemp -d /tmp/loupe-launcher.XXXXXX)
   ditto $LAUNCHER_BUILT "$tmp/Loupe Launcher.app"
@@ -126,7 +126,7 @@ nest_launcher() {
   rmdir $tmp
 }
 
-# Sign Topaz's own binaries, then the outer bundle at $1.
+# Sign Loupe's own binaries, then the outer bundle at $1.
 sign_loupe() {
   local bin
   for bin in wezterm wezterm-mux-server strip-ansi-escapes; do
@@ -142,10 +142,10 @@ designated() {
 }
 
 # Every signature valid, and each helper's designated requirement the one
-# its permission grants were made to: $2 (Loupe) and $3 (Topaz Launcher)
-# if given, else that of the installed Topaz's copy, if it has one.
-# TOPAZ_NEW_IDENTITY=1 reports a changed requirement and goes on, for the one
-# build after the signing certificate is replaced (loupe/signing/README.md);
+# its permission grants were made to: $2 (LoupeHUD) and $3 (Loupe Launcher)
+# if given, else that of the installed Loupe's copy, if it has one.
+# LOUPE_NEW_IDENTITY=1 reports a changed requirement and goes on, for the one
+# build after the signing certificate is replaced (helpers/signing/README.md);
 # every permission must then be granted again.
 verify() {
   codesign --verify --deep --strict $1
@@ -173,16 +173,16 @@ verify() {
 }
 
 # After an install, read each app's own report of the permissions macOS
-# applies to it (Topaz: Accessibility, Input Monitoring, Microphone, in its
+# applies to it (Loupe: Accessibility, Input Monitoring, Microphone, in its
 # log file; each helper: Accessibility, in the unified log), logged once at
-# launch (dictation/everywhere.rs log_permissions, TopazKit
+# launch (dictation/everywhere.rs log_permissions, LoupeKit
 # PermissionReport). A grant made to an earlier signature stays listed in
 # System Settings but is never applied, which is how the certificate change
-# of 2026-11-08 left Topaz without Input Monitoring until 2026-11-10, so fn
-# dictation heard no key outside Topaz. The apps ask macOS themselves
+# of 2026-11-08 left Loupe without Input Monitoring until 2026-11-10, so fn
+# dictation heard no key outside Loupe. The apps ask macOS themselves
 # because the permission databases cannot be read from the gate's tmux
 # (no Full Disk Access). $1 is when the apps were (re)launched, as
-# `log show --start` takes it; then any of topaz, loupe, launcher. Names
+# `log show --start` takes it; then any of loupe, hud, launcher. Names
 # each permission not applied, with its reset, and returns 1; also returns
 # 1 when an app has not reported within 30 seconds.
 permissions() {
@@ -224,7 +224,7 @@ permissions() {
   (( short ))
 }
 
-# Whether this script runs inside Topaz: wezterm-gui is one of its ancestors.
+# Whether this script runs inside Loupe: wezterm-gui is one of its ancestors.
 inside_loupe() {
   local pid=$$ comm
   while (( pid > 1 )); do
@@ -237,7 +237,7 @@ inside_loupe() {
 
 install_staged() {
   verify $STAGE
-  # 2026-11-17: run in a Topaz tab, the script died with the tab at the
+  # 2026-11-17: run in a Loupe tab, the script died with the tab at the
   # quit below, before it had replaced the app, and nothing said so.
   if [[ -z ${LOUPE_INSTALL_DETACHED:-} ]] && inside_loupe; then
     mkdir -p $LOGS
@@ -256,7 +256,7 @@ install_staged() {
   fi
   rm -rf $APP /Applications/WezTerm.app
   ditto $STAGE $APP
-  # From here Topaz is reopened whatever else fails, so a failed config
+  # From here Loupe is reopened whatever else fails, so a failed config
   # install never leaves it closed; the failure is reported and returned.
   local failed=
   $LSREGISTER -f $APP || failed="lsregister"
@@ -272,8 +272,8 @@ install_staged() {
   (( applied )) || exit 1
 }
 
-# Replace helper $1 (loupe, or hud, its old name; or launcher) inside the
-# installed Topaz.app and have Topaz relaunch it.
+# Replace helper $1 (hud or launcher) inside the
+# installed Loupe.app and have Loupe relaunch it.
 install_helper() {
   local name inside
   case $1 in
@@ -282,7 +282,7 @@ install_helper() {
   esac
   [[ -d $APP/$inside ]] || { echo "$APP has no $inside; build and install Loupe first." >&2; exit 1; }
   # -a: macOS pgrep leaves out its own ancestors by default, and run from a
-  # Topaz tab, Topaz is one of them.
+  # Loupe tab, Loupe is one of them.
   pgrep -aqf $APP/Contents/MacOS/wezterm-gui || { echo "Loupe is not running, so nothing would relaunch $name." >&2; exit 1; }
   local hud_want=$(designated $APP/$HUD_IN) launcher_want=
   [[ -d $APP/$LAUNCHER_IN ]] && launcher_want=$(designated $APP/$LAUNCHER_IN)

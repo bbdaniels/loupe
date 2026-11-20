@@ -4,7 +4,7 @@ import Foundation
 // `Tasks.md`, the one frontmatter reader, the cwd → project resolver, and the
 // parent → children tree. Foundation-only
 // and free of app state so the unit-test bundle compiles this file directly
-// (see project.yml → LoupeTests).
+// (see project.yml → HelpersTests).
 
 // MARK: - Project
 
@@ -630,7 +630,7 @@ enum SessionMenu {
 
 /// The Projects tab's parent → children tree, one level deep, read off the
 /// children's `parent:` frontmatter (the parent declares nothing). Design:
-/// Projects/obsidian/Topaz/plans/2026-10-07 - Nested Subprojects.md.
+/// Projects/obsidian/Loupe/plans/2026-10-07 - Nested Subprojects.md.
 enum ProjectTree {
 
     /// A top-level row and the children shown beneath it (empty for an

@@ -77,7 +77,7 @@ final class WezTermServiceTests: XCTestCase {
         XCTAssertEqual(WezTerm.macTabTitle(project: "ClaudeHUD"), "ClaudeHUD (Mac)")
     }
 
-    /// Topaz's config is the one opener of an iMac session's tab: ClaudeHUD
+    /// Loupe's config is the one opener of an iMac session's tab: ClaudeHUD
     /// asks it by this line (the gate's tmux session, a tab, the time in
     /// milliseconds), and only a gate session's name is ever asked, since the
     /// config passes it to ssh.

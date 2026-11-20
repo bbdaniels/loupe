@@ -1,6 +1,6 @@
 import XCTest
 
-/// Topaz Launcher's snapping geometry: Magnet's bindings as Ben had them on
+/// Loupe Launcher's snapping geometry: Magnet's bindings as Ben had them on
 /// 2026-11-08, on Magnet's grid, in Accessibility's top-left coordinates.
 final class SnapLayoutTests: XCTestCase {
     /// The Mac's screen: 1470 by 956 points, a 33 point menu bar, no Dock.

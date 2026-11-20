@@ -1,8 +1,8 @@
-//! Topaz: a preview of an image that a pane names.
+//! Loupe: a preview of an image that a pane names.
 //!
 //! Claude Code prints the path of a screenshot or figure (`Read(/tmp/x.png)`,
 //! a path in prose, a markdown link) or an http(s) image URL, never the
-//! picture. When the mouse rests on such a reference, Topaz draws the image
+//! picture. When the mouse rests on such a reference, Loupe draws the image
 //! in a framed box beside that line: below it when there is room in the
 //! pane, otherwise above it.
 //!
@@ -36,7 +36,7 @@
 //! A path whose file name ends in `.edit.md` names a passage Claude wants
 //! Ben to edit. It is found, resolved, fetched and marked exactly as an
 //! image path is, but it has no picture to preview: a plain click hands it
-//! to Loupe's editor instead of Preview, through a request file that names
+//! to LoupeHUD's editor instead of Preview, through a request file that names
 //! the local copy and the pane it came from.
 //!
 //! A file a session sends Ben (Claude Code's SendUserFile) is printed as
@@ -131,7 +131,7 @@ const SSH_DROPPED_VALUE_FLAGS: &str = "DLORW";
 pub enum ReferenceKind {
     /// An image: previewed on hover, opened in Preview on a click.
     Image,
-    /// A passage to edit (`.edit.md`): no preview, opened in Loupe's
+    /// A passage to edit (`.edit.md`): no preview, opened in LoupeHUD's
     /// editor on a click.
     Edit,
     /// A file a session sent (`[file]<path>`) that is neither of the
@@ -1327,8 +1327,8 @@ fn pane_files(pane: &Arc<dyn Pane>) -> PaneFiles {
 }
 
 /// Where a remote file is saved to be opened on this machine: under the
-/// cache's `Topaz/previews` for an image, `Topaz/edits` for a file to
-/// edit and `Topaz/sent` for a sent file, in a folder per source so two files of one name do not collide,
+/// cache's `Loupe/previews` for an image, `Loupe/edits` for a file to
+/// edit and `Loupe/sent` for a sent file, in a folder per source so two files of one name do not collide,
 /// and under the file's own name, so the viewer's title reads as usual.
 fn remote_copy_path(cache: &Path, source: &ImageSource, path: &str) -> PathBuf {
     use std::hash::{Hash, Hasher};
@@ -1380,9 +1380,9 @@ fn open_in_viewer(path: &Path) {
     }
 }
 
-/// The version of the request file Topaz hands to Loupe's editor.
+/// The version of the request file Loupe hands to LoupeHUD's editor.
 const EDIT_REQUEST_VERSION: u32 = 1;
-/// The extension of a request file; Loupe opens files of this kind.
+/// The extension of a request file; LoupeHUD opens files of this kind.
 const EDIT_REQUEST_EXTENSION: &str = "loupeedit";
 /// Counts the requests written by this process, so two in one millisecond
 /// get different names.
@@ -1417,7 +1417,7 @@ fn edit_request_json(pane_id: PaneId, file: &Path, shown: &str, remote: bool) ->
     })?)
 }
 
-/// Where a new request file goes: the cache's `Topaz/edits/requests`, named
+/// Where a new request file goes: the cache's `Loupe/edits/requests`, named
 /// by the time, this process and a count, so no two requests share a name.
 fn edit_request_path(cache: &Path) -> PathBuf {
     let millis = SystemTime::now()
@@ -1451,7 +1451,7 @@ fn write_edit_request(
     Ok(request)
 }
 
-/// Loupe's bundle nested in this app, which holds the editor; none in a
+/// LoupeHUD's bundle nested in this app, which holds the editor; none in a
 /// build outside an app bundle, and none off macOS.
 #[cfg(target_os = "macos")]
 fn hud_bundle() -> Option<PathBuf> {
@@ -1463,8 +1463,8 @@ fn hud_bundle() -> Option<PathBuf> {
     None
 }
 
-/// Hands a local file to Loupe's editor: writes a request naming it and the
-/// pane it came from, and opens the request with Loupe.
+/// Hands a local file to LoupeHUD's editor: writes a request naming it and the
+/// pane it came from, and opens the request with LoupeHUD.
 fn open_in_editor(
     hud: &Path,
     pane_id: PaneId,
@@ -1498,7 +1498,7 @@ fn open_in_default_app(path: &Path) {
 }
 
 /// Opens what a reference names: an image file here in the viewer, a URL
-/// in the browser, a file to edit in Loupe's editor, a sent file in its
+/// in the browser, a file to edit in LoupeHUD's editor, a sent file in its
 /// default app. A file on the far host is fetched afresh to the cache
 /// first, on a thread, and the copy opened.
 fn open_reference(hover: ImageHover) {

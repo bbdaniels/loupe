@@ -1,6 +1,6 @@
 import XCTest
 
-/// `SessionLink`: the `topaz://session/<host>/<name>` links of the morning
+/// `SessionLink`: the `loupe://session/<host>/<name>` links of the morning
 /// email, read into the machine and the gate session they name, and every
 /// other form refused.
 final class SessionLinkTests: XCTestCase {

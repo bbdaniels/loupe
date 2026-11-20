@@ -10,8 +10,8 @@ import Foundation
 // only the listed apps' items and the listed system items show. Hidden Bar
 // 1.11.1 and Thaw 3 hide this way; a sandboxed app is refused.
 //
-// Measured on the Mac (27.2, 2026-11-08): allowing only Loupe (then com.claudehud.app) and
-// system items 0..<64 hid every other app's item and kept Loupe's, Wi-Fi,
+// Measured on the Mac (27.2, 2026-11-08): allowing only LoupeHUD (then com.claudehud.app) and
+// system items 0..<64 hid every other app's item and kept LoupeHUD's, Wi-Fi,
 // battery, Control Center and the clock; invalidating brought them all back,
 // and so did killing the holder with SIGKILL, so a crash cannot leave the bar
 // hidden. Item order (Cmd-drag) is never touched: macOS keeps it in
@@ -58,7 +58,7 @@ protocol MenuBarTimer: AnyObject {
 ///
 /// Bartender style (Ben, 2026-11-08: "We really don't need anything aside from
 /// the gem, the tot, the Wi-Fi, the battery"): hiding is on unless Ben turns it
-/// off, and the allow-list is Loupe's own items (the gem and the chevron), Tot
+/// off, and the allow-list is LoupeHUD's own items (the gem and the chevron), Tot
 /// and the system items. The chevron or Ctrl+Opt+Cmd+B reveals everything for
 /// `revealFor` seconds, or until pressed again, by releasing the allow-list;
 /// then it is asked for again.

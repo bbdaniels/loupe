@@ -1,6 +1,6 @@
 import XCTest
 
-/// SecurityTool: Loupe's keychain items through /usr/bin/security, so one
+/// SecurityTool: LoupeHUD's keychain items through /usr/bin/security, so one
 /// "Always Allow" survives rebuilds (Ben, 2026-11-08). These test the command
 /// lines and the output parsing; none of them touches the keychain.
 final class SecurityToolTests: XCTestCase {

@@ -97,7 +97,7 @@ class HUDPanelController {
         controller.sizingOptions = []
         panel.contentViewController = controller
         // Every launch opens the panel in the full right third of the screen,
-        // beside Topaz (PanelPlacement). No frame autosave: the saved frame
+        // beside Loupe (PanelPlacement). No frame autosave: the saved frame
         // was the one the controller had shrunk.
         if let screen = NSScreen.main ?? NSScreen.screens.first {
             panel.setFrame(PanelPlacement.rightThird(of: screen.visibleFrame, minWidth: panel.minSize.width),
@@ -139,7 +139,7 @@ class HUDPanelController {
 extension NSColor {
     /// The panel's background (Ben, 2026-11-08: "don't let the match drift, fix it at the same
     /// color as the main hud background"). A fixed color, not windowBackgroundColor, which macOS
-    /// tints from the desktop behind the window. Topaz's tab bar uses the same two values
+    /// tints from the desktop behind the window. Loupe's tab bar uses the same two values
     /// (bbdaniels/personal deploy/mac/wezterm/wezterm.lua, HUD_BG); change both together.
     static let hudBackground = NSColor(name: "hudBackground") { appearance in
         appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua

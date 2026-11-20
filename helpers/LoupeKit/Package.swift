@@ -1,7 +1,7 @@
 // swift-tools-version:5.9
 import PackageDescription
 
-/// Code the Topaz helpers share (Loupe and Topaz Launcher).
+/// Code the Loupe helpers share (LoupeHUD and Loupe Launcher).
 let package = Package(
     name: "LoupeKit",
     platforms: [.macOS(.v14)],

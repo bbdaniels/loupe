@@ -13,7 +13,7 @@ import CoreText
 ///
 /// The cost lands in WindowServer, which composites every moving glyph layer
 /// on every display frame (2026-11-03: WindowServer at 60 to 75% of a core).
-/// So the wave runs only while Loupe is focused (its window is key or the
+/// So the wave runs only while LoupeHUD is focused (its window is key or the
 /// app is active), and at most 30 frames a second; unfocused, the glyphs rest
 /// on the baseline and nothing is redrawn.
 ///
@@ -143,7 +143,7 @@ private final class GlyphDanceView: NSView {
         if window != nil { rebuild() }
     }
 
-    /// Focused: this view's window is key, or Loupe is the active app.
+    /// Focused: this view's window is key, or LoupeHUD is the active app.
     private var isFocused: Bool {
         guard let window else { return false }
         return window.isKeyWindow || NSApp.isActive

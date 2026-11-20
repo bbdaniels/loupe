@@ -11,7 +11,7 @@ import Foundation
 //   claude daemon run …                              the supervisor
 //     claude bg-pty-host --bg-pty-host …/spare/<x>.pty.sock … --bg-spare …
 //       claude bg-spare --bg-spare …/spare/<x>.claim.sock   the worker (REPL)
-//   wezterm-gui (a tab Loupe spawned)
+//   wezterm-gui (a tab LoupeHUD spawned)
 //     zsh -l -c … → claude attach <short>                  an attach client
 //
 // The daemon keeps one unclaimed spare warm (cwd = …/spare, no rv socket).
@@ -537,7 +537,7 @@ enum ClaudeProcessSnapshot {
 // MARK: - Menu text
 
 /// The words the menu-bar menu shows, shared by the menu and by
-/// `Loupe --process-report`, so the text dump is the menu.
+/// `LoupeHUD --process-report`, so the text dump is the menu.
 enum ProcessMenuText {
     typealias Lines = (top: String, bottom: String)
     typealias Age = ClaudeProcessClassifier

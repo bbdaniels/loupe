@@ -205,7 +205,7 @@ final class ProjectResolverTests: XCTestCase {
     // MARK: The golden file shared with the personal repo
 
     /// `personal/lib/fixtures/resolver_cases.json`, read from the personal
-    /// checkout beside the Topaz one, whose loupe/ holds this file (or
+    /// checkout beside the Loupe one, whose helpers/ holds this file (or
     /// `$RESOLVER_CASES`). Missing is a failure,
     /// never a skip: a copied snapshot could drift from the Python side.
     static var casesURL: URL {

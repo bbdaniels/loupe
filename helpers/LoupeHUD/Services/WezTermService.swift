@@ -4,7 +4,7 @@ import os
 
 private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "WezTerm")
 
-/// THE terminal Loupe opens sessions in (Ben, 2026-11-07): Topaz, Ben's
+/// THE terminal LoupeHUD opens sessions in (Ben, 2026-11-07): Loupe, Ben's
 /// build of WezTerm (renamed 2026-11-08; binaries and `wezterm cli` keep the
 /// WezTerm names), one
 /// window, one tab per session. Before this, Ghostty (and a picker of other
@@ -13,13 +13,13 @@ private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "Wez
 /// Everything goes through WezTerm's own command line (`wezterm cli`), which
 /// reaches the running GUI over its socket: `list` the panes, `spawn` a tab,
 /// `set-tab-title`, `activate-tab`. WezTerm comes to the front through
-/// NSWorkspace, never AppleScript, so Loupe needs neither Apple Events nor
+/// NSWorkspace, never AppleScript, so LoupeHUD needs neither Apple Events nor
 /// Accessibility for it.
 ///
 /// The WezTerm config (bbdaniels/personal, `deploy/mac/wezterm/wezterm.lua`)
 /// is the one opener of an iMac session's tab, titled with its tmux session
 /// name, `rc-<name>`: every few seconds it opens one for each live iMac
-/// session that never had one, and Loupe asks it for a tab by
+/// session that never had one, and LoupeHUD asks it for a tab by
 /// `openIMac`, never spawning one itself (2026-11-08: both opened one for a
 /// new session, so it got two). A session on this Mac gets `<project> (Mac)`,
 /// is spawned here, and is found again by the terminal of its
@@ -62,7 +62,7 @@ enum WezTerm {
         ttyName.hasPrefix("/dev/") ? String(ttyName.dropFirst(5)) : ttyName
     }
 
-    /// The line Loupe writes to `openRequestFile` to ask the config for
+    /// The line LoupeHUD writes to `openRequestFile` to ask the config for
     /// an iMac session's tab: the session, a tab, the time in milliseconds
     /// (a new request even for the same session), a newline. Nil unless
     /// `session` is a gate session, `rc-` and pi-gate's NAME
@@ -138,10 +138,10 @@ enum WezTerm {
         ["cli", "--no-auto-start", "set-tab-title", "--pane-id", String(paneId), title]
     }
 
-    /// The environment the command line runs in: Loupe's own, without
-    /// `WEZTERM_UNIX_SOCKET` and `WEZTERM_PANE`. Loupe relaunched from a
+    /// The environment the command line runs in: LoupeHUD's own, without
+    /// `WEZTERM_UNIX_SOCKET` and `WEZTERM_PANE`. LoupeHUD relaunched from a
     /// shell in a WezTerm tab inherits that GUI's socket; once the GUI quits,
-    /// every call went to the dead socket, so Loupe saw no panes, lit
+    /// every call went to the dead socket, so LoupeHUD saw no panes, lit
     /// every session grey and opened no tab (2026-11-08). Without them the
     /// command line finds the running GUI itself.
     static func cliEnvironment(_ env: [String: String]) -> [String: String] {
@@ -171,7 +171,7 @@ enum WezTerm {
         ["/bin/zsh", "-l", "-c", "source ~/.zshrc 2>/dev/null; unset CLAUDECODE; " + command]
     }
 
-    /// One tab's dot as Loupe lights it: the WezTerm pane, its tab's
+    /// One tab's dot as LoupeHUD lights it: the WezTerm pane, its tab's
     /// title, the session's `SessionLight` and working directory.
     struct TabLight: Equatable {
         let paneId: Int
@@ -246,7 +246,7 @@ enum WezTerm {
         p.environment = cliEnvironment(ProcessInfo.processInfo.environment)
         let stdin = Pipe()
         // A write to a command line that already exited fails with EPIPE
-        // instead of raising SIGPIPE, which would end Loupe.
+        // instead of raising SIGPIPE, which would end LoupeHUD.
         _ = fcntl(stdin.fileHandleForWriting.fileDescriptor, F_SETNOSIGPIPE, 1)
         let err = Pipe()
         p.standardInput = stdin
@@ -278,7 +278,7 @@ enum WezTerm {
     /// Paste `text` into pane `paneId` and make that pane the active one in
     /// its tab and window; nil when the paste went, else why it did not.
     /// Blocks while the command line runs, so it is called off the main
-    /// thread. Bringing Topaz forward is the caller's (`activateApp`).
+    /// thread. Bringing Loupe forward is the caller's (`activateApp`).
     static func sendText(_ text: String, paneId: Int) -> String? {
         if let error = run(sendTextArgs(paneId: paneId), input: Data(text.utf8)) { return error }
         if run(activatePaneArgs(paneId: paneId)) == nil {
@@ -299,8 +299,8 @@ enum WezTerm {
     }
 
     /// Put Ben in an iMac session's tab: ask the config to focus it, or open
-    /// it when there is none, and bring Topaz forward (launching it, whose
-    /// startup then reads the request). False when Topaz is not installed or
+    /// it when there is none, and bring Loupe forward (launching it, whose
+    /// startup then reads the request). False when Loupe is not installed or
     /// `session` is not a gate session.
     @MainActor
     @discardableResult

@@ -1,19 +1,19 @@
 import CoreGraphics
 import Foundation
 
-/// A request from Topaz to edit a passage in place (the inline editor, Ben,
+/// A request from Loupe to edit a passage in place (the inline editor, Ben,
 /// 2026-11-09). Claude writes the passage to a file ending `.edit.md` and
-/// prints its path; a click on that path in a Topaz pane writes one of these
-/// as JSON to `~/Library/Caches/Topaz/edits/requests/<unique>.topazedit` and
-/// opens it with Loupe (`open -a Loupe.app <file>`). Loupe shows the text in
+/// prints its path; a click on that path in a Loupe pane writes one of these
+/// as JSON to `~/Library/Caches/Loupe/edits/requests/<unique>.loupeedit` and
+/// opens it with LoupeHUD (`open -a LoupeHUD.app <file>`). LoupeHUD shows the text in
 /// an editor panel (`EditorPanelManager`) and Send pastes the edited text
 /// into the pane, where Ben adds a note and presses Return himself.
 ///
 /// The parsing, the title, the trim and the placement are pure and unit
 /// tested; the panel runs them.
 struct EditRequest: Codable, Equatable {
-    /// The one version Loupe reads. A request of any other version is
-    /// ignored, so a Topaz that changed the format cannot be misread.
+    /// The one version LoupeHUD reads. A request of any other version is
+    /// ignored, so a Loupe that changed the format cannot be misread.
     static let currentVersion = 1
     /// The extension of a request file, declared in Info.plist.
     static let fileExtension = "loupeedit"
@@ -23,7 +23,7 @@ struct EditRequest: Codable, Equatable {
     let version: Int
     /// The WezTerm mux pane the path was clicked in, where Send pastes.
     let paneId: Int
-    /// The absolute local path of the text (for an iMac pane, Topaz's copy).
+    /// The absolute local path of the text (for an iMac pane, Loupe's copy).
     let file: String
     /// The path as the pane showed it.
     let shown: String

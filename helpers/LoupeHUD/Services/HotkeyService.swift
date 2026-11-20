@@ -5,12 +5,12 @@ private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "Hot
 
 // MARK: - Hotkey Service
 
-/// Loupe's global shortcuts: Cmd+Shift+Space toggles the panel, and
+/// LoupeHUD's global shortcuts: Cmd+Shift+Space toggles the panel, and
 /// Ctrl+Opt+Cmd+B shows or hides the other menu bar items (Ben, 2026-11-08).
 ///
 /// Uses NSEvent monitors: a global monitor for when the app is in the background,
 /// and a local monitor for when the app is in the foreground. The global one
-/// needs Loupe's Accessibility permission.
+/// needs LoupeHUD's Accessibility permission.
 @MainActor
 class HotkeyService: ObservableObject {
     @Published var isRegistered = false

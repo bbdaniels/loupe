@@ -3,13 +3,13 @@ import os
 
 private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "SecurityTool")
 
-// Loupe's keychain items, read and written through Apple's /usr/bin/security
+// LoupeHUD's keychain items, read and written through Apple's /usr/bin/security
 // (Ben, 2026-11-08, "option 1").
 //
-// Loupe is signed with a self-signed certificate that has no team id, so an
+// LoupeHUD is signed with a self-signed certificate that has no team id, so an
 // item's access list names each build by its code hash, and "Always Allow"
 // held only until the next rebuild: every rebuild asked again. The security
-// tool is signed by Apple and does not change with Loupe's builds, so once
+// tool is signed by Apple and does not change with LoupeHUD's builds, so once
 // Ben allows it for an item, that holds. An item it creates trusts it from
 // the start. The cost, accepted by Ben: any process running as Ben can read
 // these items through the same tool without a prompt, as it already can
@@ -119,7 +119,7 @@ enum SecurityTool {
 
     /// The secret in `find-generic-password -w`'s output: the text less its
     /// newline, or the bytes its hex stands for. A secret that is itself an
-    /// even run of hex digits reads as hex; Loupe's items (a JSON blob, the
+    /// even run of hex digits reads as hex; LoupeHUD's items (a JSON blob, the
     /// legacy keys and cookies) never are.
     static func secret(fromOutput out: Data) -> Data {
         var text = out

@@ -5,7 +5,7 @@ import Carbon.HIToolbox
 /// to the application target reaches the action, as the window server's
 /// would. A handler given the wrong user data, or left installed after its
 /// center is gone, crashes or misfires here, the kind of launch crash
-/// 3f6b602 fixed in Loupe.
+/// 3f6b602 fixed in LoupeHUD.
 final class HotKeyCenterTests: XCTestCase {
     private func press(_ id: UInt32, signature: OSType = HotKeyCenter.signature) -> OSStatus {
         var event: EventRef?

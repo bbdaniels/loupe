@@ -514,7 +514,7 @@ pub struct Config {
     /// macOS: hold fn (Globe) on its own to dictate, in any app, with
     /// Anthropic's speech to text, the service of Claude Code's /voice,
     /// signed in with Claude Code's login. Words are typed as they are
-    /// recognized into the active pane when Topaz is frontmost, and as
+    /// recognized into the active pane when Loupe is frontmost, and as
     /// keyboard events into the frontmost app otherwise (never while a
     /// password field has the keyboard). Another key or a click from fn down
     /// until the last words are typed, or switching apps, cancels, so fn
@@ -530,7 +530,7 @@ pub struct Config {
     #[dynamic(default)]
     pub fn_dictation_keyterms: Vec<String>,
 
-    /// Topaz: when the mouse rests on an image file path or an http(s)
+    /// Loupe: when the mouse rests on an image file path or an http(s)
     /// image URL in a pane (png, jpg, jpeg, gif or webp), draw the image
     /// beside that line. The preview is drawn over the pane by the GUI and
     /// never written into the terminal, so full-screen programs such as
@@ -539,12 +539,12 @@ pub struct Config {
     #[dynamic(default = "default_true")]
     pub image_preview_on_hover: bool,
 
-    /// Topaz: mark every image reference that previews on hover with a
+    /// Loupe: mark every image reference that previews on hover with a
     /// faint dashed underline, drawn over the text.
     #[dynamic(default = "default_true")]
     pub image_preview_underline: bool,
 
-    /// Topaz: the tallest the hover image preview is drawn, in terminal rows.
+    /// Loupe: the tallest the hover image preview is drawn, in terminal rows.
     #[dynamic(default = "default_image_preview_max_rows")]
     pub image_preview_max_rows: u16,
 

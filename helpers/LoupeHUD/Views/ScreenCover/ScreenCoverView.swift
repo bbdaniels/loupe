@@ -66,7 +66,7 @@ struct ScreenCoverView: View {
                 .allowsHitTesting(false)
 
                 VStack(spacing: unit) {
-                    // The Topaz gem in grayscale, in place of Lockpaw's paw (Ben, 2026-11-08).
+                    // The Loupe gem in grayscale, in place of Lockpaw's paw (Ben, 2026-11-08).
                     Image("LoupeGem")
                         .resizable()
                         .interpolation(.high)

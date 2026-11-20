@@ -1,6 +1,6 @@
 import XCTest
 
-/// The pure half of the inline editor: reading Topaz's request, the panel's
+/// The pure half of the inline editor: reading Loupe's request, the panel's
 /// title, size and place, and the text Send pastes.
 final class EditRequestTests: XCTestCase {
     func testAGoodRequestIsRead() throws {
@@ -14,7 +14,7 @@ final class EditRequestTests: XCTestCase {
                                    shown: "~/Projects/paper/intro.edit.md", remote: true))
     }
 
-    /// A version Loupe does not know is reported as such, even when its other
+    /// A version LoupeHUD does not know is reported as such, even when its other
     /// fields changed shape.
     func testAnUnknownVersionIsRefused() {
         XCTAssertEqual(EditRequest.parse(Data(#"{"version":2,"pane_id":7,"file":"/a.edit.md","shown":"a","remote":false}"#.utf8)),

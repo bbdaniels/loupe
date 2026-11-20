@@ -7,7 +7,7 @@ private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "Edi
 /// The inline editor's panels (Ben, 2026-11-09): one floating panel per
 /// `EditRequest`, opened at the mouse, which takes typing (unlike the note
 /// windows, it is not a nonactivating panel). Send pastes the text into the
-/// request's Topaz pane and closes the panel; Cancel closes it and sends
+/// request's Loupe pane and closes the panel; Cancel closes it and sends
 /// nothing. The text is never written back to its file.
 @MainActor
 final class EditorPanelManager {
@@ -29,8 +29,8 @@ final class EditorPanelManager {
 
     private init() {}
 
-    /// The files Loupe was asked to open (`application(_:open:)`): each
-    /// `.topazedit` request is read, deleted and shown; anything else is
+    /// The files LoupeHUD was asked to open (`application(_:open:)`): each
+    /// `.loupeedit` request is read, deleted and shown; anything else is
     /// logged and left alone.
     func open(urls: [URL]) {
         for url in urls {
@@ -118,7 +118,7 @@ final class EditorPanelManager {
     }
 
     /// Paste the trimmed text into the pane off the main thread; on success
-    /// close the panel and bring Topaz forward on that pane, else keep the
+    /// close the panel and bring Loupe forward on that pane, else keep the
     /// panel open with the error in it.
     private func send(_ model: EditorModel, file: String) {
         guard !model.sending else { return }

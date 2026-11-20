@@ -4,7 +4,7 @@
 //! A session lives from fn down until its thread ends, which is after fn up
 //! and the wait for the final text (about 125 ms, at most a few seconds).
 //! Any key or mouse button pressed during that whole time, in any app, or a
-//! Topaz window losing focus, cancels it: from
+//! Loupe window losing focus, cancels it: from
 //! that moment nothing more is typed, so the dictation never backspaces over
 //! or types after Ben's own input. A second fn press while a session is still
 //! alive starts nothing.
@@ -186,7 +186,7 @@ impl Dictation {
         }
     }
 
-    /// A key or mouse button went down, or a Topaz window lost focus: type
+    /// A key or mouse button went down, or a Loupe window lost focus: type
     /// nothing more, whether fn is still held or the final text is still
     /// awaited.
     pub fn cancel(&mut self) {

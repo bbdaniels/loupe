@@ -1,6 +1,6 @@
 //! The parts of fn dictation in every app that need no event tap, window or
 //! microphone: the fn key's state from the system's flags-changed events,
-//! where the words go (the pane when Topaz has the keyboard, else the app
+//! where the words go (the pane when Loupe has the keyboard, else the app
 //! that has it), and how an edit (typing.rs) becomes the keyboard events posted to
 //! another app. Plain std, so these tests also run on their own:
 //! `rustc --edition 2021 --test keys.rs && ./keys`.
@@ -71,7 +71,7 @@ pub fn hold_keys_after(was: [bool; 2], key_code: u16, flags: u64) -> [bool; 2] {
 
 /// Who has the keyboard at fn down, from three readings. The frontmost
 /// app is not enough: a menu bar app's panel (Tot's, 2026-11-08) takes the
-/// keyboard without its app coming to the front, and the app in front, Topaz
+/// keyboard without its app coming to the front, and the app in front, Loupe
 /// say, is not told (its window stays key in its own eyes, so wezterm's
 /// window focus stays set too).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -80,7 +80,7 @@ pub struct Focus {
     /// set where the system has routed it, the annotated session tap): the
     /// process that receives keystrokes, a panel's included. None when unset.
     pub event_target: Option<i32>,
-    /// The system-wide focused application (Accessibility), when Topaz is
+    /// The system-wide focused application (Accessibility), when Loupe is
     /// trusted.
     pub focused_app: Option<i32>,
     /// NSWorkspace's frontmost application.
@@ -104,7 +104,7 @@ impl Focus {
 /// Where a hold of fn sends its words, decided at fn down.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Target {
-    /// Topaz has the keyboard: its focused window's active pane, through the mux.
+    /// Loupe has the keyboard: its focused window's active pane, through the mux.
     Pane,
     /// Another app has the keyboard, the one with this process id: keyboard
     /// events.
@@ -117,7 +117,7 @@ pub enum Target {
 }
 
 /// The target for fn down, given the process that has the keyboard
-/// (`Focus::owner`), Topaz's own and whether secure input is on. Secure input
+/// (`Focus::owner`), Loupe's own and whether secure input is on. Secure input
 /// does not stop the pane: typing there goes through the mux, not keyboard
 /// events.
 pub fn target_for(owner: Option<i32>, own: i32, secure_input: bool) -> Target {
@@ -197,7 +197,7 @@ pub enum Applied {
 /// moves: `focus_at_press` is `Focus::later` at fn down, and each edit
 /// compares the same reading now. Comparing a reading with itself, not with
 /// the fn event's target, keeps a panel that one reading cannot see (the
-/// frontmost app is Topaz while Tot's panel has the keyboard) from stopping
+/// frontmost app is Loupe while Tot's panel has the keyboard) from stopping
 /// the sink at its first edit, while a real switch still changes it.
 pub struct AppSink<P: Poster> {
     focus_at_press: Option<i32>,
@@ -305,7 +305,7 @@ mod tests {
         assert_eq!(target_for(None, 7, false), Target::Nowhere);
     }
 
-    /// Topaz (7) is frontmost and Tot (9), a menu bar app, has the keyboard
+    /// Loupe (7) is frontmost and Tot (9), a menu bar app, has the keyboard
     /// through a panel that never brought it to the front.
     #[test]
     fn a_panel_that_has_the_keyboard_gets_the_words_though_loupe_is_frontmost() {
@@ -327,7 +327,7 @@ mod tests {
             ..trusted
         };
         assert_eq!(target_for(no_target.owner(), 7, false), Target::App(9));
-        // Ben in Topaz's own window: the pane.
+        // Ben in Loupe's own window: the pane.
         let in_loupe = Focus {
             event_target: Some(7),
             focused_app: Some(7),
@@ -541,7 +541,7 @@ mod tests {
     }
 
     /// Tot's panel has the keyboard; the later reading, untrusted, sees only
-    /// the frontmost app, Topaz (7). It stays 7 while Ben dictates, so the
+    /// the frontmost app, Loupe (7). It stays 7 while Ben dictates, so the
     /// words land; a real switch (Ben clicks into Mail, 4) changes it and
     /// stops the sink before its next edit.
     #[test]

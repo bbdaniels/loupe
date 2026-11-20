@@ -1,10 +1,10 @@
 import Foundation
 
-/// A link to a live gate session, `topaz://session/<host>/<name>` (Ben,
+/// A link to a live gate session, `loupe://session/<host>/<name>` (Ben,
 /// 2026-11-15: the morning email links the sessions it names). `<host>` is
 /// `imac` or `mac`, the machine whose gate runs it; `<name>` is pi-gate's
 /// NAME, which the gate runs in the tmux session `rc-<name>` of its own
-/// server (`tmux -L pi-gate`). Loupe registers the `topaz` scheme
+/// server (`tmux -L pi-gate`). LoupeHUD registers the `loupe` scheme
 /// (Info.plist, `CFBundleURLTypes`); a click on the link reaches
 /// `AppDelegate.application(_:open:)`, which hands it to
 /// `AgentsService.open(sessionLink:)`, the path a click on that session's

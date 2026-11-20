@@ -5,7 +5,7 @@ tags:
 
 # `fn_dictation = false`
 
-Topaz (fork) option, macOS only. When `true`, holding fn (Globe) on its own
+Loupe (fork) option, macOS only. When `true`, holding fn (Globe) on its own
 dictates into the active pane with Anthropic's speech to text, the service of
 Claude Code's `/voice`, signed in with Claude Code's login (its
 `Claude Code-credentials` Keychain item, read at each use). Words are typed as
@@ -27,5 +27,5 @@ up to 1024 characters in all:
 
 ```lua
 config.fn_dictation = true
-config.fn_dictation_keyterms = { 'Topaz', 'ClaudeHUD', 'WezTerm' }
+config.fn_dictation_keyterms = { 'Loupe', 'ClaudeHUD', 'WezTerm' }
 ```

@@ -338,10 +338,10 @@ final class VaultWatchTests: XCTestCase {
         }
         let loupe = "cwds:\n  - /Users/b/Projects/loupe\n"
         let before = VaultProject.filingClaims([project("Tech Setup", "")])
-        // A new project that claims a directory (Topaz, 2026-11-08) changes it.
+        // A new project that claims a directory (Loupe, 2026-11-08) changes it.
         let added = VaultProject.filingClaims([project("Tech Setup", ""), project("Loupe", loupe)])
         XCTAssertNotEqual(before, added)
-        // A folder renamed or merged away (ClaudeHUD into Topaz) changes it.
+        // A folder renamed or merged away (ClaudeHUD into Loupe) changes it.
         XCTAssertNotEqual(VaultProject.filingClaims([project("ClaudeHUD", loupe)]),
                           VaultProject.filingClaims([project("Loupe", loupe)]))
         // An edited repo: claim changes it.

@@ -1,12 +1,12 @@
 import Foundation
 
-/// A helper's watch on Topaz, the app that launches it from
-/// `Topaz.app/Contents/Helpers` and passes its own pid as `TOPAZ_PID`
-/// (Loupe and Topaz Launcher both use it). When that process exits, by a
-/// quit or a crash, the helper exits too, so a helper never outlives Topaz. Topaz also sends SIGTERM when it quits; this
+/// A helper's watch on Loupe, the app that launches it from
+/// `Loupe.app/Contents/Helpers` and passes its own pid as `LOUPE_PID`
+/// (LoupeHUD and Loupe Launcher both use it). When that process exits, by a
+/// quit or a crash, the helper exits too, so a helper never outlives Loupe. Loupe also sends SIGTERM when it quits; this
 /// watch covers the cases where it cannot (a crash, a SIGKILL).
 public enum ParentWatch {
-    /// The pid in `TOPAZ_PID`, or nil when the helper was not launched by Topaz
+    /// The pid in `LOUPE_PID`, or nil when the helper was not launched by Loupe
     /// (the variable is missing, not a number, or names launchd or the kernel).
     public static func parentPid(_ environment: [String: String]) -> pid_t? {
         guard let text = environment["LOUPE_PID"]?.trimmingCharacters(in: .whitespaces),

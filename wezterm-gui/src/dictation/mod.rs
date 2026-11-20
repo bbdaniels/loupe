@@ -1,8 +1,8 @@
-//! Hold fn, or right Option (keys::HOLD_KEYS), to dictate (Topaz, macOS;
+//! Hold fn, or right Option (keys::HOLD_KEYS), to dictate (Loupe, macOS;
 //! config.fn_dictation), in any app. While
 //! fn is held the microphone streams to Anthropic's speech to text, the
 //! service behind Claude Code's /voice, and the words are typed as they
-//! arrive into what had the keyboard at fn down: Topaz's active pane, through
+//! arrive into what had the keyboard at fn down: Loupe's active pane, through
 //! the mux, or another app, as keyboard events (everywhere.rs, keys.rs). Both
 //! sinks take the same edits: what was typed is turned into the running text
 //! by `edit_between`. On release the stream closes at once and only the tail
@@ -90,8 +90,8 @@ const FALLBACK_CLAUDE_VERSION: &str = "2.1.319";
 /// Claude Code's sign in is missing, expired or refused, which Ben must fix
 /// himself, the sink shows a notice.
 ///
-/// Loupe's gem goes blue here, on the fn tap's thread at the press, before
-/// the session's thread starts or Topaz looks for its focused pane (which
+/// LoupeHUD's gem goes blue here, on the fn tap's thread at the press, before
+/// the session's thread starts or Loupe looks for its focused pane (which
 /// waits on the GUI thread, up to a second when it is busy). The light then
 /// moves into the session, so every way the session ends, no focused pane
 /// included, drops it and turns the gem back.
@@ -138,7 +138,7 @@ pub fn start(
     })
 }
 
-/// Loupe's light for a press, posting "listening" now.
+/// LoupeHUD's light for a press, posting "listening" now.
 fn hud_light(pressed: Instant) -> light::Light<impl FnMut(light::State) + Send> {
     let timing = Timing::new(pressed);
     lit_at_press(pressed, move |state: light::State| {
@@ -182,7 +182,7 @@ const FOCUSED_PANE_WAIT: Duration = Duration::from_secs(1);
 
 /// Where a session's words go.
 enum Sink {
-    /// Topaz's active pane at fn down, typed into on the GUI thread; the
+    /// Loupe's active pane at fn down, typed into on the GUI thread; the
     /// window shows notices.
     Pane {
         pane_id: PaneId,
@@ -342,7 +342,7 @@ fn run(
     light: &mut light::Light<impl FnMut(light::State)>,
 ) -> anyhow::Result<End> {
     let timing = &shared.timing;
-    // Loupe's gem has been blue since the fn press (`start`); it is
+    // LoupeHUD's gem has been blue since the fn press (`start`); it is
     // refreshed while fn is held and put out at its release, and dropping
     // it on any way out (cancel, error, `?`) turns it off.
     // The microphone has run since the press, so audio buffers while the
@@ -550,7 +550,7 @@ fn run(
     Ok(stopped.unwrap_or(end))
 }
 
-/// Tell Loupe the light's state (light.rs): a distributed notification,
+/// Tell LoupeHUD the light's state (light.rs): a distributed notification,
 /// delivered at once, from the fn tap's thread at the press and from the
 /// session's thread after.
 fn post_to_hud(state: light::State) {
@@ -770,7 +770,7 @@ fn connect_in_time(
     }
 }
 
-/// How long a socket opened ahead of a press is kept for one. Topaz
+/// How long a socket opened ahead of a press is kept for one. Loupe
 /// coming to the front, or a dictation ending, opens one; unused, it is
 /// closed after this.
 const READY_FOR: Duration = Duration::from_secs(60);

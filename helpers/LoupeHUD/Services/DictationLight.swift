@@ -1,17 +1,17 @@
 import Foundation
 
-/// The menu bar gem shows blue while Topaz's fn dictation is listening (Ben,
+/// The menu bar gem shows blue while Loupe's fn dictation is listening (Ben,
 /// 2026-11-08): from the instant fn is pressed, until fn is released or the
 /// session ends however it ends. The notification is handled as it arrives,
 /// with no debounce or animation: the gem changes on the same pass of the
-/// main run loop. Topaz posts the distributed notification `name`
+/// main run loop. Loupe posts the distributed notification `name`
 /// with userInfo `state` ("listening" or "stopped") and `pid` (its own), and
 /// refreshes "listening" every second (wezterm-gui/src/dictation/light.rs).
 ///
 /// A gem can never stay blue by mistake: without a refresh for `stale` it
 /// goes back by itself, so a lost "stopped" costs at most three seconds; and
-/// if Topaz dies, ParentWatch ends this app with it. Launched by Topaz, only
-/// notifications carrying its TOPAZ_PID count, so another Topaz (a test
+/// if Loupe dies, ParentWatch ends this app with it. Launched by Loupe, only
+/// notifications carrying its LOUPE_PID count, so another Loupe (a test
 /// build) cannot light it.
 ///
 /// This is the state alone, so that it can be tested; DictationWatch observes.
@@ -19,7 +19,7 @@ struct DictationLight {
     static let name = Notification.Name("com.bbdaniels.loupe.dictation")
     static let stale: TimeInterval = 3
 
-    /// The Topaz whose notifications count; nil counts any.
+    /// The Loupe whose notifications count; nil counts any.
     let loupePid: Int32?
     /// The last "listening", while no "stopped" has come since.
     private(set) var lastListening: Date?
@@ -52,7 +52,7 @@ struct DictationLight {
     }
 }
 
-/// Observes Topaz's dictation notifications and reports each change of the
+/// Observes Loupe's dictation notifications and reports each change of the
 /// light to `onChange`, on the main thread.
 @MainActor
 final class DictationWatch: NSObject {

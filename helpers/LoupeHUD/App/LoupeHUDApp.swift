@@ -11,14 +11,14 @@ struct LoupeHUDApp: App {
 
     init() {
         let args = CommandLine.arguments
-        // `Loupe --process-report`: print the menu's Background Jobs /
+        // `LoupeHUD --process-report`: print the menu's Background Jobs /
         // Orphans sections and the classification of every Claude worker,
         // then exit. Read-only; safe while the menu-bar app is running.
         if args.contains("--process-report") {
             FileHandle.standardOutput.write(Data(ProcessMenuText.dump(ClaudeProcessSnapshot.capture()).utf8))
             exit(0)
         }
-        // `Loupe --remote-control on|off|status`: the header toggle's
+        // `LoupeHUD --remote-control on|off|status`: the header toggle's
         // load and unload, for use over ssh. Prints the server state, exits.
         if let i = args.firstIndex(of: "--remote-control") {
             exit(RemoteControlServerService.commandLine(args.indices.contains(i + 1) ? args[i + 1] : "status"))
@@ -44,9 +44,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let menuBarHiding = MenuBarHiding()
     /// The chevron left of the gem: shows the hidden items for a while.
     private var chevronItem: NSStatusItem?
-    /// Watches Topaz, the app that launched this one, while it runs.
+    /// Watches Loupe, the app that launched this one, while it runs.
     private var loupeWatch: DispatchSourceProcess?
-    /// Turns the gem blue while Topaz's fn dictation is listening.
+    /// Turns the gem blue while Loupe's fn dictation is listening.
     private var dictationWatch: DictationWatch?
 
     override init() {
@@ -56,10 +56,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         PermissionReport.log(subsystem: "com.bbdaniels.loupe.hud")
-        // A helper inside Topaz.app (LSUIElement, 2026-11-08): no Dock icon, no
-        // Cmd-Tab entry and no Quit item; Topaz launches it, relaunches it if it
-        // exits and ends it when Topaz quits. Launched by Topaz, it is given
-        // TOPAZ_PID and exits when that process does, so it never outlives it.
+        // A helper inside Loupe.app (LSUIElement, 2026-11-08): no Dock icon, no
+        // Cmd-Tab entry and no Quit item; Loupe launches it, relaunches it if it
+        // exits and ends it when Loupe quits. Launched by Loupe, it is given
+        // LOUPE_PID and exits when that process does, so it never outlives it.
         if let pid = ParentWatch.parentPid(ProcessInfo.processInfo.environment) {
             loupeWatch = ParentWatch.watch(pid) { [weak self] in
                 MainActor.assumeIsolated {
@@ -377,9 +377,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         appState.screenCoverService.toggle()
     }
 
-    /// Files opened with Loupe: Topaz's inline editor requests
-    /// (`open -a Loupe.app <request>.topazedit`), each shown in an editor
-    /// panel (`EditorPanelManager`). Links of the `topaz` scheme (Info.plist)
+    /// Files opened with LoupeHUD: Loupe's inline editor requests
+    /// (`open -a LoupeHUD.app <request>.loupeedit`), each shown in an editor
+    /// panel (`EditorPanelManager`). Links of the `loupe` scheme (Info.plist)
     /// name a live session, opened as a click on its line opens it
     /// (`AgentsService.open(sessionLink:)`).
     func application(_ application: NSApplication, open urls: [URL]) {

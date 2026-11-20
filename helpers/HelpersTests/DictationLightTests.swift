@@ -34,7 +34,7 @@ final class DictationLightTests: XCTestCase {
         XCTAssertEqual(light.expires, t0 + 2 + DictationLight.stale)
     }
 
-    /// Only the Topaz that launched this app counts.
+    /// Only the Loupe that launched this app counts.
     func testAnotherLoupeIsIgnored() {
         var light = DictationLight(loupePid: 4242)
         light.receive(info("listening", pid: "999"), at: t0)

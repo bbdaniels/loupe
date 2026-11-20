@@ -21,7 +21,7 @@ class TerminalService: ObservableObject {
     /// Mark `dir` trusted in ~/.claude.json so a HUD launch never stops at
     /// Claude Code's folder-trust dialog. Claude Code (2.1.273) skips the
     /// dialog when `projects[<cwd>].hasTrustDialogAccepted` is true. Every
-    /// session Loupe opens on this Mac calls this first.
+    /// session LoupeHUD opens on this Mac calls this first.
     ///
     /// Live claude processes rewrite ~/.claude.json, so: read it immediately
     /// before writing, change only that one key (creating a minimal project
@@ -80,7 +80,7 @@ class TerminalService: ObservableObject {
         }
     }
 
-    /// Open a directory in Manuscriptor via `open -a`. Loupe hands over the
+    /// Open a directory in Manuscriptor via `open -a`. LoupeHUD hands over the
     /// project's declared `manuscript:` directory (vault Tasks.md frontmatter).
     /// Manuscriptor's root rule resolves upward only — a project root with the
     /// paper in a subdirectory would never resolve, which is why the directory

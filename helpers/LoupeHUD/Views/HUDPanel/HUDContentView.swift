@@ -113,7 +113,7 @@ enum FixedTab: String, CaseIterable {
     }
 
     /// Image asset name to use INSTEAD of the SF Symbol for this tab, when set.
-    /// The Projects tab wears the Topaz gem (it absorbed the header's old
+    /// The Projects tab wears the Loupe gem (it absorbed the header's old
     /// standalone logo, 2026-08-31, and the gem replaced the Claude mark,
     /// 2026-11-08); the other tabs keep their SF Symbols so the logo stays
     /// unique in the strip.
@@ -238,7 +238,7 @@ struct HUDContentView: View {
                 .hudTip("Cover screen — input locked, agents keep running")
             }
             .padding(.horizontal, 14)
-            // 2 points top and bottom make the header as tall as Topaz's tab
+            // 2 points top and bottom make the header as tall as Loupe's tab
             // bar beside it (window_frame font 14, 29 points; Ben, 2026-11-08).
             .padding(.vertical, 2)
             // The header sits in the title-bar strip (.fullSizeContentView,
@@ -696,7 +696,7 @@ struct TimeSectionView: View {
 
 // MARK: - Launch permission mode (global)
 
-/// The single, global permission mode every Loupe-launched session
+/// The single, global permission mode every LoupeHUD-launched session
 /// starts in. Chosen in the info popover (`LaunchSection`) and persisted in
 /// `UserDefaults` (`launch.permissionMode`); read at launch time by
 /// `permissionModeFlag()`, which every launch path (magic launch, `>_` at
@@ -820,7 +820,7 @@ func daemonizedClaudeCommand(_ argSuffix: String, remoteControlName: String? = n
         + "echo \"[registered with daemon: $__i -- run 'claude agents' to supervise]\"; "
         // Closing the tab hangs up the pty and ends only the attach: the
         // session runs on in the daemon, as an iMac session runs on in tmux
-        // (Ben, 2026-11-07). Only Loupe's stop control ends it.
+        // (Ben, 2026-11-07). Only LoupeHUD's stop control ends it.
         + "claude attach \"$__i\"; "
         + "else printf '%s\\n' \"$__o\"; \(plain); fi"
 }
@@ -920,7 +920,7 @@ func launchClaudeSession(prompt: String? = nil, resume: String? = nil, name: Str
             switch outcome {
             case .running(let answer):
                 GateLive.refresh(.iMac, force: true)
-                // Topaz's config opens the tab (or focuses the one it has).
+                // Loupe's config opens the tab (or focuses the one it has).
                 WezTerm.openIMac(session: IMacLauncher.tabTitle(answer))
             case .notOnIMac(let reason):
                 if let fallback { fallback() } else { showIMacFailure(reason, detail: detail, offerMac: nil) }
@@ -1275,7 +1275,7 @@ private struct InfoRow: View {
 
 // MARK: - Launch Settings
 
-/// The global permission mode every Loupe-launched session starts in
+/// The global permission mode every LoupeHUD-launched session starts in
 /// (`LaunchPermissionMode`), and the persistent Remote Control server
 /// (`RemoteControlServerService`), whose permission mode follows it. The
 /// Remote Control glyph's color carries the server's state (green running,

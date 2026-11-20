@@ -9,7 +9,7 @@ import Darwin
 ///
 ///   1. the session's claim record, `~/.claude/session-projects/<sessionId>.json`,
 ///      written by `~/.claude/hooks/session-context.py` when a session opens
-///      or runs `/project` (Loupe only reads it; the latest write wins);
+///      or runs `/project` (LoupeHUD only reads it; the latest write wins);
 ///   2. else the project its transcript's records worked in: each record's
 ///      own `cwd` is resolved through `ProjectResolver`, directories that
 ///      resolve to no project are ignored, and the project with the most
@@ -164,7 +164,7 @@ struct ClaudeSessionRecord: Equatable {
     var tmuxServer: String? = nil
     /// Set by the iMac's gate (`live`) on a session that is a service, not
     /// Ben's work: "duet", the runner's Duet session, which systemd starts
-    /// again whenever it ends (2026-11-06). Loupe lists no such session
+    /// again whenever it ends (2026-11-06). LoupeHUD lists no such session
     /// (`AgentsService.reload`).
     var service: String? = nil
 

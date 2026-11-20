@@ -231,7 +231,7 @@ struct AgentSession: Identifiable, Equatable {
     var remoteControlURL: URL? = nil
 
     /// Set only on a gate row (`gateHost`): the tmux session that holds it on
-    /// its machine, which a click attaches a Topaz tab to (over ssh for the
+    /// its machine, which a click attaches a Loupe tab to (over ssh for the
     /// iMac, directly for the MacBook). Nil for an iMac session with no
     /// terminal (one the Remote Control server spawned from the phone or
     /// claude.ai), which a click first moves into the gate's tmux with the

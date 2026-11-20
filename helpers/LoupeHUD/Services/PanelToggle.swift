@@ -6,7 +6,7 @@
 /// panel wholly buried under another app's window is brought forward instead
 /// (Ben, 2026-11-06: the first click on a buried panel used to hide it). The
 /// rule of 2026-11-06 also asked that the panel be the key window of the
-/// active app, which a panel left beside Topaz is not, so a click there showed
+/// active app, which a panel left beside Loupe is not, so a click there showed
 /// it again instead of hiding it.
 ///
 /// Pure, so the rule is unit tested; `HUDPanelController.toggle` reads the

@@ -225,7 +225,7 @@ final class ScreenCoverService: ObservableObject {
         }
     }
 
-    /// Whether Loupe holds Accessibility, which the cover's input tap
+    /// Whether LoupeHUD holds Accessibility, which the cover's input tap
     /// needs; `prompt` asks macOS to show its grant dialog.
     @discardableResult
     static func checkAccessibility(prompt: Bool = false) -> Bool {

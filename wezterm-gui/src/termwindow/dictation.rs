@@ -1,5 +1,5 @@
-//! fn dictation, the windows' side (Topaz, macOS; the session and the event
-//! tap that hears fn in every app are crate::dictation). When Topaz has the
+//! fn dictation, the windows' side (Loupe, macOS; the session and the event
+//! tap that hears fn in every app are crate::dictation). When Loupe has the
 //! keyboard at fn down, the words go to the focused window's active pane,
 //! which the session asks for here; any key in a window, or a window losing
 //! focus, cancels, so nothing is typed after Ben's own keys. Nothing happens
@@ -59,7 +59,7 @@ pub fn show_dictation_notice(
     )));
 }
 
-/// The focused Topaz window's active pane (or its overlay) and that window,
+/// The focused Loupe window's active pane (or its overlay) and that window,
 /// asked of every window on the GUI thread; from any thread but that one.
 /// None when no window is focused, or no answer came within `wait`.
 #[cfg(target_os = "macos")]
