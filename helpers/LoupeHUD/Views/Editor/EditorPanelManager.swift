@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "Editor")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "Editor")
 
 /// The inline editor's panels (Ben, 2026-11-09): one floating panel per
 /// `EditRequest`, opened at the mouse, which takes typing (unlike the note

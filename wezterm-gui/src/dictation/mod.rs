@@ -101,7 +101,7 @@ pub fn start(
     keyterms: Vec<String>,
     pressed: Instant,
 ) -> Session {
-    let light = loupe_light(pressed);
+    let light = hud_light(pressed);
     Session::spawn(pressed, move |commands, shared| {
         let mut light = light;
         // The microphone first, then the pane: what Ben says while the GUI
@@ -139,11 +139,11 @@ pub fn start(
 }
 
 /// Loupe's light for a press, posting "listening" now.
-fn loupe_light(pressed: Instant) -> light::Light<impl FnMut(light::State) + Send> {
+fn hud_light(pressed: Instant) -> light::Light<impl FnMut(light::State) + Send> {
     let timing = Timing::new(pressed);
     lit_at_press(pressed, move |state: light::State| {
-        post_to_loupe(state);
-        timing.log(format_args!("told Loupe {}", state.as_str()));
+        post_to_hud(state);
+        timing.log(format_args!("told LoupeHUD {}", state.as_str()));
     })
 }
 
@@ -154,7 +154,7 @@ const FLASH: Duration = Duration::from_millis(300);
 /// input, no app with the keyboard): the gem turns blue at the press, as for
 /// any press, and back after FLASH, so Ben sees that fn was heard.
 pub fn flash(pressed: Instant) {
-    put_out_after(loupe_light(pressed), FLASH);
+    put_out_after(hud_light(pressed), FLASH);
 }
 
 /// Drop `light`, which is on, after `wait`, off the calling thread.
@@ -553,7 +553,7 @@ fn run(
 /// Tell Loupe the light's state (light.rs): a distributed notification,
 /// delivered at once, from the fn tap's thread at the press and from the
 /// session's thread after.
-fn post_to_loupe(state: light::State) {
+fn post_to_hud(state: light::State) {
     use objc2::rc::autoreleasepool;
     use objc2::runtime::AnyObject;
     use objc2::{class, msg_send};
@@ -576,7 +576,7 @@ fn post_to_loupe(state: light::State) {
             deliverImmediately: true
         ];
     });
-    log::debug!("fn dictation: told Loupe {}", state.as_str());
+    log::debug!("fn dictation: told LoupeHUD {}", state.as_str());
 }
 /// Send the buffered audio in whole chunks, and the remainder too when `all`;
 /// how many samples went.

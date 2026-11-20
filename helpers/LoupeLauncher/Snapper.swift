@@ -1,7 +1,7 @@
 import Cocoa
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.launcher", category: "Snap")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.launcher", category: "Snap")
 
 /// Magnet's keyboard snapping (`SnapLayout`), bound only while Magnet is not
 /// running: every chord Ben uses is Magnet's, and Magnet stays in charge

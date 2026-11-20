@@ -20,7 +20,7 @@ struct SessionLink: Equatable {
         case mac
     }
 
-    static let scheme = "topaz"
+    static let scheme = "loupe"
     /// The URL's host: the kind of thing the link names.
     static let kind = "session"
 

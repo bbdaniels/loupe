@@ -107,7 +107,7 @@ enum FixedTab: String, CaseIterable {
     var icon: String {
         switch self {
         case .history: return "clock.arrow.circlepath"
-        case .vault: return "briefcase"               // overridden by the TopazLogo asset; see assetIcon.
+        case .vault: return "briefcase"               // overridden by the LoupeLogo asset; see assetIcon.
         case .today: return "calendar"
         }
     }
@@ -119,7 +119,7 @@ enum FixedTab: String, CaseIterable {
     /// unique in the strip.
     var assetIcon: String? {
         switch self {
-        case .vault: return "TopazLogo"
+        case .vault: return "LoupeLogo"
         default: return nil
         }
     }
@@ -1052,7 +1052,7 @@ struct SessionDetailRow: View {
                         .foregroundColor(.white)
                 }
                 .buttonStyle(.borderless)
-                .hudTip("Resume in a new Topaz tab")
+                .hudTip("Resume in a new Loupe tab")
             }
         }
         .padding(.vertical, 5)
@@ -1157,7 +1157,7 @@ struct InfoPopover: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Loupe")
+            Text("LoupeHUD")
                 .font(.custom("Fira Sans", size: 15).weight(.semibold))
 
             Divider()
@@ -1204,7 +1204,7 @@ struct InfoPopover: View {
                     .foregroundColor(.secondary)
 
                 InfoRow(icon: "star.fill", text: "**Star:** Pin projects to a Starred section at the top of history")
-                InfoRow(icon: "terminal", text: "**Terminal:** Sessions open as tabs in Topaz; click `>_` for a new one, right-click to choose the machine")
+                InfoRow(icon: "terminal", text: "**Terminal:** Sessions open as tabs in Loupe; click `>_` for a new one, right-click to choose the machine")
                 // DISABLED — notifications superseded by the daemon agent handler.
                 // InfoRow(icon: "bell.fill", text: "**Notifications:** Desktop via macOS, mobile via [ntfy.sh](https://ntfy.sh)")
                 DancingTextToggle()

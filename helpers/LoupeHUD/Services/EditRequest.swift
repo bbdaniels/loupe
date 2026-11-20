@@ -16,7 +16,7 @@ struct EditRequest: Codable, Equatable {
     /// ignored, so a Topaz that changed the format cannot be misread.
     static let currentVersion = 1
     /// The extension of a request file, declared in Info.plist.
-    static let fileExtension = "topazedit"
+    static let fileExtension = "loupeedit"
     /// The suffix that marks a passage to edit; dropped from the title.
     static let textSuffix = ".edit.md"
 

@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "SecretsVault")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "SecretsVault")
 
 /// In-memory secrets cache backed by one Keychain item (service
 /// com.claudehud.vault, account secrets) holding every secret as a JSON blob.
@@ -31,7 +31,7 @@ final class SecretsVault: @unchecked Sendable {
     private static let account = "secrets"
     private static let migrationKey = "com.claudehud.vault.migrated.v1"
     /// Keychain calls, in order, off the main thread.
-    private let io = DispatchQueue(label: "com.bbdaniels.topaz.loupe.vault.io")
+    private let io = DispatchQueue(label: "com.bbdaniels.loupe.hud.vault.io")
     /// Long enough for Ben to answer a keychain dialog; past it the vault
     /// stops waiting and stays locked (the dialog is left alone).
     private static let readTimeout: TimeInterval = 300

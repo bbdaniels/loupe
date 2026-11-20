@@ -2,7 +2,7 @@ import Foundation
 import WebKit
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "ClaudeWebFetcher")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "ClaudeWebFetcher")
 
 /// Errors specific to the WebKit-backed claude.ai fetch path.
 enum ClaudeWebError: Error, LocalizedError {

@@ -1128,7 +1128,7 @@ fn fetch_url(url: &str) -> anyhow::Result<Vec<u8>> {
     };
     let response = http_req::request::Request::new(&uri)
         .timeout(FETCH_TIMEOUT)
-        .header("User-Agent", "Topaz image preview")
+        .header("User-Agent", "Loupe image preview")
         .send(&mut body)
         .map_err(|e| anyhow!("fetch {url}: {e}"))?;
     anyhow::ensure!(
@@ -1344,7 +1344,7 @@ fn remote_copy_path(cache: &Path, source: &ImageSource, path: &str) -> PathBuf {
         .map(|n| n.to_os_string())
         .unwrap_or_else(|| fallback.into());
     cache
-        .join("Topaz")
+        .join("Loupe")
         .join(folder)
         .join(format!("{:016x}", hasher.finish()))
         .join(name)
@@ -1383,7 +1383,7 @@ fn open_in_viewer(path: &Path) {
 /// The version of the request file Topaz hands to Loupe's editor.
 const EDIT_REQUEST_VERSION: u32 = 1;
 /// The extension of a request file; Loupe opens files of this kind.
-const EDIT_REQUEST_EXTENSION: &str = "topazedit";
+const EDIT_REQUEST_EXTENSION: &str = "loupeedit";
 /// Counts the requests written by this process, so two in one millisecond
 /// get different names.
 static EDIT_REQUESTS_WRITTEN: AtomicU64 = AtomicU64::new(0);
@@ -1425,7 +1425,7 @@ fn edit_request_path(cache: &Path) -> PathBuf {
         .map(|d| d.as_millis())
         .unwrap_or(0);
     let count = EDIT_REQUESTS_WRITTEN.fetch_add(1, Ordering::Relaxed);
-    cache.join("Topaz").join("edits").join("requests").join(format!(
+    cache.join("Loupe").join("edits").join("requests").join(format!(
         "{millis}-{}-{count}.{EDIT_REQUEST_EXTENSION}",
         std::process::id()
     ))
@@ -1454,19 +1454,19 @@ fn write_edit_request(
 /// Loupe's bundle nested in this app, which holds the editor; none in a
 /// build outside an app bundle, and none off macOS.
 #[cfg(target_os = "macos")]
-fn loupe_bundle() -> Option<PathBuf> {
-    crate::helpers::helper_bundle("Loupe")
+fn hud_bundle() -> Option<PathBuf> {
+    crate::helpers::helper_bundle("LoupeHUD")
 }
 
 #[cfg(not(target_os = "macos"))]
-fn loupe_bundle() -> Option<PathBuf> {
+fn hud_bundle() -> Option<PathBuf> {
     None
 }
 
 /// Hands a local file to Loupe's editor: writes a request naming it and the
 /// pane it came from, and opens the request with Loupe.
 fn open_in_editor(
-    loupe: &Path,
+    hud: &Path,
     pane_id: PaneId,
     file: &Path,
     shown: &str,
@@ -1476,7 +1476,7 @@ fn open_in_editor(
     let request = write_edit_request(&cache, pane_id, file, shown, remote)?;
     let status = Command::new("/usr/bin/open")
         .arg("-a")
-        .arg(loupe)
+        .arg(hud)
         .arg(&request)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -1486,7 +1486,7 @@ fn open_in_editor(
     anyhow::ensure!(
         status.success(),
         "open -a {} {}: {status}",
-        loupe.display(),
+        hud.display(),
         request.display()
     );
     Ok(())
@@ -1509,17 +1509,17 @@ fn open_reference(hover: ImageHover) {
         ..
     } = hover;
     let kind = source.kind();
-    let loupe = match kind {
+    let hud = match kind {
         ReferenceKind::Image | ReferenceKind::Sent => None,
         ReferenceKind::Edit => {
             if !cfg!(target_os = "macos") {
                 log::error!("image preview: cannot edit {shown}: the editor is macOS only");
                 return;
             }
-            match loupe_bundle() {
-                Some(loupe) => Some(loupe),
+            match hud_bundle() {
+                Some(hud) => Some(hud),
                 None => {
-                    log::error!("image preview: cannot edit {shown}: this build has no Loupe.app");
+                    log::error!("image preview: cannot edit {shown}: this build has no LoupeHUD.app");
                     return;
                 }
             }
@@ -1539,8 +1539,8 @@ fn open_reference(hover: ImageHover) {
                             ImageSource::File(path) => path.clone(),
                             _ => save_remote_copy(&source)?,
                         };
-                        match &loupe {
-                            Some(loupe) => open_in_editor(loupe, pane_id, &local, &shown, remote)?,
+                        match &hud {
+                            Some(hud) => open_in_editor(hud, pane_id, &local, &shown, remote)?,
                             None if kind == ReferenceKind::Sent => open_in_default_app(&local),
                             None => open_in_viewer(&local),
                         }
@@ -2710,7 +2710,7 @@ mod test {
         assert_eq!(remote.kind(), ReferenceKind::Sent);
         assert!(remote.is_remote());
         let copy = remote_copy_path(Path::new("/c"), &remote, "/x/it's.pdf");
-        assert!(copy.starts_with("/c/Topaz/sent"));
+        assert!(copy.starts_with("/c/Loupe/sent"));
         assert_eq!(copy.file_name().unwrap(), "it's.pdf", "the copy keeps its name, so its type");
     }
 
@@ -2760,7 +2760,7 @@ mod test {
         let a = remote_copy_path(Path::new("/c"), &source("a"), "out/fig 1.png");
         let b = remote_copy_path(Path::new("/c"), &source("b"), "out/fig 1.png");
         assert_eq!(a.file_name().unwrap(), "fig 1.png");
-        assert!(a.starts_with("/c/Topaz/previews"));
+        assert!(a.starts_with("/c/Loupe/previews"));
         assert_ne!(a, b);
     }
 
@@ -2828,18 +2828,18 @@ mod test {
         };
         assert_eq!(remote.kind(), ReferenceKind::Edit);
         let copy = remote_copy_path(Path::new("/c"), &remote, "out/p 1.edit.md");
-        assert!(copy.starts_with("/c/Topaz/edits"));
+        assert!(copy.starts_with("/c/Loupe/edits"));
         assert_eq!(copy.file_name().unwrap(), "p 1.edit.md");
     }
 
     #[test]
     fn edit_request_escapes_its_strings() {
-        let file = Path::new("/c/Topaz/edits/0f/it's \"q\".edit.md");
+        let file = Path::new("/c/Loupe/edits/0f/it's \"q\".edit.md");
         let shown = "out\\x\n\u{1}\u{e9}.edit.md";
         let json = edit_request_json(7, file, shown, true).unwrap();
         assert_eq!(
             json,
-            r#"{"version":1,"pane_id":7,"file":"/c/Topaz/edits/0f/it's \"q\".edit.md","shown":"out\\x\n\u0001é.edit.md","remote":true}"#
+            r#"{"version":1,"pane_id":7,"file":"/c/Loupe/edits/0f/it's \"q\".edit.md","shown":"out\\x\n\u0001é.edit.md","remote":true}"#
         );
         let value: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert_eq!(value["file"], file.to_str().unwrap());
@@ -2855,7 +2855,7 @@ mod test {
         let a = write_edit_request(cache.path(), 3, file, "p.edit.md", false).unwrap();
         let b = write_edit_request(cache.path(), 3, file, "p.edit.md", false).unwrap();
         assert_ne!(a, b);
-        let folder = cache.path().join("Topaz").join("edits").join("requests");
+        let folder = cache.path().join("Loupe").join("edits").join("requests");
         assert_eq!(a.parent().unwrap(), folder);
         assert_eq!(a.extension().unwrap(), EDIT_REQUEST_EXTENSION);
         assert_eq!(

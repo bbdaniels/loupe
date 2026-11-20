@@ -3,8 +3,8 @@ import PackageDescription
 
 /// Code the Topaz helpers share (Loupe and Topaz Launcher).
 let package = Package(
-    name: "TopazKit",
+    name: "LoupeKit",
     platforms: [.macOS(.v14)],
-    products: [.library(name: "TopazKit", targets: ["TopazKit"])],
-    targets: [.target(name: "TopazKit")]
+    products: [.library(name: "LoupeKit", targets: ["LoupeKit"])],
+    targets: [.target(name: "LoupeKit")]
 )

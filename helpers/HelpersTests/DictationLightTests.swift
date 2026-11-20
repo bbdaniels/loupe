@@ -8,7 +8,7 @@ final class DictationLightTests: XCTestCase {
     }
 
     func testListeningLightsAndStoppedPutsItOut() {
-        var light = DictationLight(topazPid: 4242)
+        var light = DictationLight(loupePid: 4242)
         XCTAssertFalse(light.isLit(at: t0))
         light.receive(info("listening"), at: t0)
         XCTAssertTrue(light.isLit(at: t0))
@@ -19,7 +19,7 @@ final class DictationLightTests: XCTestCase {
 
     /// A lost "stopped" leaves the gem blue for at most `stale`.
     func testWithoutARefreshTheLightGoesOutByItself() {
-        var light = DictationLight(topazPid: 4242)
+        var light = DictationLight(loupePid: 4242)
         light.receive(info("listening"), at: t0)
         XCTAssertTrue(light.isLit(at: t0 + DictationLight.stale - 0.01))
         XCTAssertFalse(light.isLit(at: t0 + DictationLight.stale))
@@ -27,7 +27,7 @@ final class DictationLightTests: XCTestCase {
     }
 
     func testARefreshKeepsItLit() {
-        var light = DictationLight(topazPid: 4242)
+        var light = DictationLight(loupePid: 4242)
         light.receive(info("listening"), at: t0)
         light.receive(info("listening"), at: t0 + 2)
         XCTAssertTrue(light.isLit(at: t0 + 4))
@@ -35,25 +35,25 @@ final class DictationLightTests: XCTestCase {
     }
 
     /// Only the Topaz that launched this app counts.
-    func testAnotherTopazIsIgnored() {
-        var light = DictationLight(topazPid: 4242)
+    func testAnotherLoupeIsIgnored() {
+        var light = DictationLight(loupePid: 4242)
         light.receive(info("listening", pid: "999"), at: t0)
         XCTAssertFalse(light.isLit(at: t0))
         light.receive(info("listening"), at: t0)
         light.receive(info("stopped", pid: "999"), at: t0)
-        XCTAssertTrue(light.isLit(at: t0), "another Topaz's stop put it out")
+        XCTAssertTrue(light.isLit(at: t0), "another Loupe's stop put it out")
         light.receive(["state": "listening"], at: t0 + 1)
         XCTAssertEqual(light.lastListening, t0, "a notification without a pid counted")
     }
 
-    func testWithoutTopazAnyPosterCounts() {
-        var light = DictationLight(topazPid: nil)
+    func testWithoutLoupeAnyPosterCounts() {
+        var light = DictationLight(loupePid: nil)
         light.receive(["state": "listening"], at: t0)
         XCTAssertTrue(light.isLit(at: t0))
     }
 
     func testUnknownOrMissingStatesChangeNothing() {
-        var light = DictationLight(topazPid: 4242)
+        var light = DictationLight(loupePid: 4242)
         light.receive(info("listening"), at: t0)
         light.receive(info("paused"), at: t0 + 1)
         light.receive(nil, at: t0 + 1)

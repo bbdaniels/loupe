@@ -99,8 +99,8 @@ const OTHER_MOUSE_DOWN: u32 = 25;
 const TAP_DISABLED_BY_TIMEOUT: u32 = 0xFFFF_FFFE;
 const TAP_DISABLED_BY_USER_INPUT: u32 = 0xFFFF_FFFF;
 
-/// The source user data of the events Topaz posts ("Topz").
-const POSTED_BY_TOPAZ: i64 = 0x546F_707A;
+/// The source user data of the events Topaz posts ("Loup").
+const POSTED_BY_LOUPE: i64 = 0x4C6F_7570;
 
 #[link(name = "CoreGraphics", kind = "framework")]
 extern "C" {
@@ -217,7 +217,7 @@ const TAP_RETRY: Duration = Duration::from_secs(5);
 fn run_tap() {
     if !unsafe { CGPreflightListenEventAccess() } {
         log::warn!(
-            "fn dictation: Topaz has no Input Monitoring permission; asking \
+            "fn dictation: Loupe has no Input Monitoring permission; asking \
              (System Settings, Privacy & Security, Input Monitoring)"
         );
         unsafe { CGRequestListenEventAccess() };
@@ -249,7 +249,7 @@ fn run_tap() {
         if refused == 0 {
             log::error!(
                 "fn dictation: macOS refused the event tap (Input Monitoring for \
-                 Topaz is off); trying again every {TAP_RETRY:?}"
+                 Loupe is off); trying again every {TAP_RETRY:?}"
             );
         }
         refused += 1;
@@ -290,7 +290,7 @@ fn on_event_inner(state: &mut TapState, kind: u32, event: CGEventRef) {
             unsafe { CGEventTapEnable(state.port, true) };
         }
         _ if unsafe { CGEventGetIntegerValueField(event, K_CG_EVENT_SOURCE_USER_DATA) }
-            == POSTED_BY_TOPAZ => {}
+            == POSTED_BY_LOUPE => {}
         FLAGS_CHANGED => {
             let key_code =
                 unsafe { CGEventGetIntegerValueField(event, K_CG_KEYBOARD_EVENT_KEYCODE) } as u16;
@@ -317,7 +317,7 @@ fn on_event_inner(state: &mut TapState, kind: u32, event: CGEventRef) {
 pub const SECURE_INPUT_NOTICE: &str = "fn dictation types nothing while a password \
      field (secure input) has the keyboard.";
 const NO_ACCESSIBILITY_NOTICE: &str = "fn dictation in other apps needs Accessibility \
-     for Topaz: System Settings, Privacy & Security, Accessibility. Then hold fn again.";
+     for Loupe: System Settings, Privacy & Security, Accessibility. Then hold fn again.";
 
 /// fn went down, at `pressed`, on the tap's thread; the system sent its
 /// event to `event_target`.
@@ -331,7 +331,7 @@ fn fn_pressed(pressed: Instant, event_target: Option<i32>) {
     let own = std::process::id() as i32;
     let target = keys::target_for(focus.owner(), own, secure_input());
     log::info!(
-        "fn dictation: at the press, {target:?} (Topaz is {own}; the fn event went to \
+        "fn dictation: at the press, {target:?} (Loupe is {own}; the fn event went to \
          {:?}, the focused application is {:?}, the frontmost {:?}; \
          AXIsProcessTrusted {trusted}, CGPreflightPostEventAccess {})",
         focus.event_target,
@@ -353,7 +353,7 @@ fn fn_pressed(pressed: Instant, event_target: Option<i32>) {
         }
         Target::App(pid) if !trusted => {
             log::warn!(
-                "fn dictation: Topaz has no Accessibility permission at this press \
+                "fn dictation: Loupe has no Accessibility permission at this press \
                  (AXIsProcessTrusted false), so nothing can be typed into {pid}; asking"
             );
             super::flash(pressed);
@@ -441,7 +441,7 @@ pub fn secure_input() -> bool {
 /// itself.
 pub fn notice(message: String) {
     wezterm_toast_notification::show(wezterm_toast_notification::ToastNotification {
-        title: "Topaz".to_string(),
+        title: "Loupe".to_string(),
         message,
         url: None,
         timeout: Some(Duration::from_secs(5)),
@@ -473,7 +473,7 @@ impl EventPoster {
                 CGEventKeyboardSetUnicodeString(event, text.len(), text.as_ptr());
             }
             CGEventSetFlags(event, 0);
-            CGEventSetIntegerValueField(event, K_CG_EVENT_SOURCE_USER_DATA, POSTED_BY_TOPAZ);
+            CGEventSetIntegerValueField(event, K_CG_EVENT_SOURCE_USER_DATA, POSTED_BY_LOUPE);
             CGEventPost(K_CG_HID_EVENT_TAP, event);
             CFRelease(event.cast_const());
         }

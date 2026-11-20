@@ -1,7 +1,7 @@
 import Cocoa
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.launcher", category: "Index")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.launcher", category: "Index")
 
 /// Every application the launcher can open, in memory: the bundles Spotlight
 /// finds in the Applications folders (a live `NSMetadataQuery`, so an app
@@ -19,7 +19,7 @@ final class AppIndex: NSObject {
 
     private let query = NSMetadataQuery()
     private var indexed: [AppMatcher.Candidate] = []
-    private let work = DispatchQueue(label: "com.bbdaniels.topaz.launcher.index", qos: .userInitiated)
+    private let work = DispatchQueue(label: "com.bbdaniels.loupe.launcher.index", qos: .userInitiated)
     nonisolated static let coreServices = "/System/Library/CoreServices"
 
     static var scopes: [URL] {

@@ -444,7 +444,7 @@ impl CommandDef {
                         menu.assign_as_app_menu();
 
                         let about_item = MenuItem::new_with(
-                            &format!("Topaz {}", config::wezterm_version()),
+                            &format!("Loupe {}", config::wezterm_version()),
                             Some(wezterm_perform_key_assignment_sel),
                             "",
                         );
@@ -1272,8 +1272,8 @@ pub fn derive_command_from_key_assignment(action: &KeyAssignment) -> Option<Comm
             icon: Some("md_reload"),
         },
         QuitApplication => CommandDef {
-            brief: "Quit Topaz".into(),
-            doc: "Quits Topaz".into(),
+            brief: "Quit Loupe".into(),
+            doc: "Quits Loupe".into(),
             keys: vec![(Modifiers::SUPER, "q".into())],
             args: &[],
             menubar: &["WezTerm"],

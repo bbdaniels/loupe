@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "MCPConfig")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "MCPConfig")
 
 // MARK: - Server Configuration
 

@@ -10,34 +10,34 @@ final class SessionLinkTests: XCTestCase {
     }
 
     func testAnIMacLinkNamesItsGateSession() {
-        let link = parse("topaz://session/imac/triage-1116")
+        let link = parse("loupe://session/imac/triage-1116")
         XCTAssertEqual(link, SessionLink(host: .iMac, name: "triage-1116"))
         XCTAssertEqual(link?.tmuxSession, "rc-triage-1116")
     }
 
     func testAMacLinkNamesItsGateSession() {
-        XCTAssertEqual(parse("topaz://session/mac/personal-1115-0812"),
+        XCTAssertEqual(parse("loupe://session/mac/personal-1115-0812"),
                        SessionLink(host: .mac, name: "personal-1115-0812"))
     }
 
     func testTheLongestNameAndAOneCharacterNameAreNames() {
         let long = String(repeating: "a", count: 40)
-        XCTAssertEqual(parse("topaz://session/imac/" + long)?.name, long)
-        XCTAssertEqual(parse("topaz://session/imac/7")?.name, "7")
+        XCTAssertEqual(parse("loupe://session/imac/" + long)?.name, long)
+        XCTAssertEqual(parse("loupe://session/imac/7")?.name, "7")
     }
 
     func testAnotherSchemeIsRefused() {
-        for s in ["https://session/imac/triage-1116", "topazz://session/imac/triage-1116",
+        for s in ["https://session/imac/triage-1116", "loupez://session/imac/triage-1116",
                   "file:///session/imac/triage-1116"] {
             XCTAssertNil(parse(s), s)
         }
     }
 
     func testAnotherHostWordIsRefused() {
-        for s in ["topaz://sessions/imac/triage-1116", "topaz://imac/triage-1116",
-                  "topaz://session/pi/triage-1116", "topaz://session/iMac/triage-1116",
-                  "topaz://session/macbook/triage-1116", "topaz:session/imac/triage-1116",
-                  "topaz:///imac/triage-1116"] {
+        for s in ["loupe://sessions/imac/triage-1116", "loupe://imac/triage-1116",
+                  "loupe://session/pi/triage-1116", "loupe://session/iMac/triage-1116",
+                  "loupe://session/macbook/triage-1116", "loupe:session/imac/triage-1116",
+                  "loupe:///imac/triage-1116"] {
             XCTAssertNil(parse(s), s)
         }
     }
@@ -45,16 +45,16 @@ final class SessionLinkTests: XCTestCase {
     func testANameThatIsNotAGateNameIsRefused() {
         for name in ["", "Triage-1116", "-triage", "triage_1116", "triage.1116", "rc-triage%2D1",
                      "triage%201116", "tri%C3%A9", String(repeating: "a", count: 41)] {
-            XCTAssertNil(parse("topaz://session/imac/" + name), name)
+            XCTAssertNil(parse("loupe://session/imac/" + name), name)
         }
     }
 
     func testExtraPathPartsATrailingSlashAndExtrasAreRefused() {
-        for s in ["topaz://session/imac/triage-1116/", "topaz://session/imac/triage-1116/more",
-                  "topaz://session/imac", "topaz://session/imac/", "topaz://session/",
-                  "topaz://session", "topaz://session//imac/triage-1116",
-                  "topaz://session/imac/triage-1116?x=1", "topaz://session/imac/triage-1116#top",
-                  "topaz://ben@session/imac/triage-1116", "topaz://session:80/imac/triage-1116"] {
+        for s in ["loupe://session/imac/triage-1116/", "loupe://session/imac/triage-1116/more",
+                  "loupe://session/imac", "loupe://session/imac/", "loupe://session/",
+                  "loupe://session", "loupe://session//imac/triage-1116",
+                  "loupe://session/imac/triage-1116?x=1", "loupe://session/imac/triage-1116#top",
+                  "loupe://ben@session/imac/triage-1116", "loupe://session:80/imac/triage-1116"] {
             XCTAssertNil(parse(s), s)
         }
     }
@@ -62,8 +62,8 @@ final class SessionLinkTests: XCTestCase {
     /// A link's machine is the one whose gate is asked, and what the alert
     /// says when the session has no line there names that machine.
     func testALinkAsksItsOwnMachineAndSaysWhenTheSessionIsNotThere() throws {
-        let mac = try XCTUnwrap(parse("topaz://session/mac/land-1118"))
-        let iMac = try XCTUnwrap(parse("topaz://session/imac/land-1118"))
+        let mac = try XCTUnwrap(parse("loupe://session/mac/land-1118"))
+        let iMac = try XCTUnwrap(parse("loupe://session/imac/land-1118"))
         XCTAssertEqual(mac.sessionHost, .mac)
         XCTAssertEqual(iMac.sessionHost, .iMac)
         XCTAssertEqual(mac.notFound(answered: true).message, "The session is not running on the MacBook")

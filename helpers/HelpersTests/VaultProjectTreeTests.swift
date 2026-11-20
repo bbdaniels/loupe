@@ -293,22 +293,22 @@ final class VaultWatchTests: XCTestCase {
         let vault = "/Users/b/Projects/obsidian"
         // A folder moved into the vault is reported as the folder alone, not
         // the Tasks.md inside it (probed on the Mac, 2026-11-08).
-        XCTAssertTrue(VaultWatch.needsRescan(paths: [vault + "/Topaz"], flags: [0x20800], vault: vault))
-        XCTAssertTrue(VaultWatch.needsRescan(paths: [vault + "/Topaz/Tasks.md"], flags: [0x19100], vault: vault))
+        XCTAssertTrue(VaultWatch.needsRescan(paths: [vault + "/Loupe"], flags: [0x20800], vault: vault))
+        XCTAssertTrue(VaultWatch.needsRescan(paths: [vault + "/Loupe/Tasks.md"], flags: [0x19100], vault: vault))
         XCTAssertTrue(VaultWatch.needsRescan(paths: [vault + "/Old Name"], flags: [0x20800], vault: vault + "/"))
         // a project folder removed (ItemIsDir | ItemRemoved)
         XCTAssertTrue(VaultWatch.needsRescan(paths: [vault + "/Gone"], flags: [0x20200], vault: vault))
         // beside a top-level note, the folder still counts by its own flag
-        XCTAssertTrue(VaultWatch.needsRescan(paths: [vault + "/log.md", vault + "/Topaz"],
+        XCTAssertTrue(VaultWatch.needsRescan(paths: [vault + "/log.md", vault + "/Loupe"],
                                              flags: [0x11000, 0x20100], vault: vault))
     }
 
     func testOtherVaultWritesDoNotRescan() {
         let vault = "/Users/b/Projects/obsidian"
-        XCTAssertFalse(VaultWatch.needsRescan(paths: [vault + "/Topaz/Dashboard.md"], flags: [0x19100], vault: vault))
+        XCTAssertFalse(VaultWatch.needsRescan(paths: [vault + "/Loupe/Dashboard.md"], flags: [0x19100], vault: vault))
         XCTAssertFalse(VaultWatch.needsRescan(paths: [vault + "/.git/index", vault + "/.git"], flags: [0x10000, 0x20000], vault: vault))
         XCTAssertFalse(VaultWatch.needsRescan(paths: [vault + "/.obsidian/workspace.json"], flags: [0x10000], vault: vault))
-        XCTAssertFalse(VaultWatch.needsRescan(paths: [vault + "/Topaz/.git/x/Tasks.md"], flags: [0x10000], vault: vault))
+        XCTAssertFalse(VaultWatch.needsRescan(paths: [vault + "/Loupe/.git/x/Tasks.md"], flags: [0x10000], vault: vault))
         XCTAssertFalse(VaultWatch.needsRescan(paths: [vault + "/Daily Notes/2026-11-08.md"], flags: [0x10000], vault: vault))
         // top-level notes are one path deep like a project folder, but files
         // (ItemIsFile with ItemModified, ItemCreated, ItemRenamed or ItemRemoved)
@@ -324,7 +324,7 @@ final class VaultWatchTests: XCTestCase {
         // MustScanSubDirs, UserDropped, KernelDropped, RootChanged: FSEvents
         // could not say what changed, so the scan must look.
         for flag: UInt32 in [0x01, 0x02, 0x04, 0x20] {
-            XCTAssertTrue(VaultWatch.needsRescan(paths: ["/Users/b/Projects/obsidian/Topaz/x"], flags: [flag],
+            XCTAssertTrue(VaultWatch.needsRescan(paths: ["/Users/b/Projects/obsidian/Loupe/x"], flags: [flag],
                                                  vault: "/Users/b/Projects/obsidian"), "flag \(flag)")
         }
     }
@@ -336,21 +336,21 @@ final class VaultWatchTests: XCTestCase {
             VaultProject.parse(folder: URL(fileURLWithPath: "/vault/" + name),
                                tasksContent: "---\nstatus: active\n\(front)---\n## Active\n\(body)")
         }
-        let topaz = "cwds:\n  - /Users/b/Projects/topaz\n"
+        let loupe = "cwds:\n  - /Users/b/Projects/loupe\n"
         let before = VaultProject.filingClaims([project("Tech Setup", "")])
         // A new project that claims a directory (Topaz, 2026-11-08) changes it.
-        let added = VaultProject.filingClaims([project("Tech Setup", ""), project("Topaz", topaz)])
+        let added = VaultProject.filingClaims([project("Tech Setup", ""), project("Loupe", loupe)])
         XCTAssertNotEqual(before, added)
         // A folder renamed or merged away (ClaudeHUD into Topaz) changes it.
-        XCTAssertNotEqual(VaultProject.filingClaims([project("ClaudeHUD", topaz)]),
-                          VaultProject.filingClaims([project("Topaz", topaz)]))
+        XCTAssertNotEqual(VaultProject.filingClaims([project("ClaudeHUD", loupe)]),
+                          VaultProject.filingClaims([project("Loupe", loupe)]))
         // An edited repo: claim changes it.
         XCTAssertNotEqual(added, VaultProject.filingClaims([
-            project("Tech Setup", ""), project("Topaz", topaz + "repo:\n  - github.com/bbdaniels/topaz\n")]))
+            project("Tech Setup", ""), project("Loupe", loupe + "repo:\n  - github.com/bbdaniels/loupe\n")]))
         // A task ticked or added does not: only the claims are read.
         XCTAssertEqual(added, VaultProject.filingClaims([
-            project("Tech Setup", "", "- [ ] New task\n"), project("Topaz", topaz, "- [x] Done\n")]))
-        XCTAssertEqual(project("Topaz", topaz).claims.cwds, ["/Users/b/Projects/topaz"])
+            project("Tech Setup", "", "- [ ] New task\n"), project("Loupe", loupe, "- [x] Done\n")]))
+        XCTAssertEqual(project("Loupe", loupe).claims.cwds, ["/Users/b/Projects/loupe"])
     }
 
     // MARK: Daily note from the scan

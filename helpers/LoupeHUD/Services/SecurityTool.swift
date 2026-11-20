@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "SecurityTool")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "SecurityTool")
 
 // Loupe's keychain items, read and written through Apple's /usr/bin/security
 // (Ben, 2026-11-08, "option 1").

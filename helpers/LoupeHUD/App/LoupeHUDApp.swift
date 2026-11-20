@@ -1,12 +1,12 @@
 import SwiftUI
 import Cocoa
-import TopazKit
+import LoupeKit
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "MenuBar")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "MenuBar")
 
 @main
-struct LoupeApp: App {
+struct LoupeHUDApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     init() {
@@ -45,26 +45,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     /// The chevron left of the gem: shows the hidden items for a while.
     private var chevronItem: NSStatusItem?
     /// Watches Topaz, the app that launched this one, while it runs.
-    private var topazWatch: DispatchSourceProcess?
+    private var loupeWatch: DispatchSourceProcess?
     /// Turns the gem blue while Topaz's fn dictation is listening.
     private var dictationWatch: DictationWatch?
 
-    /// The data moves from its ClaudeHUD names first (DataMigration), before
-    /// AppState opens the transcript index, the caches or the web view.
     override init() {
-        DataMigration.runAtLaunch()
         appState = AppState()
         super.init()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        PermissionReport.log(subsystem: "com.bbdaniels.topaz.loupe")
+        PermissionReport.log(subsystem: "com.bbdaniels.loupe.hud")
         // A helper inside Topaz.app (LSUIElement, 2026-11-08): no Dock icon, no
         // Cmd-Tab entry and no Quit item; Topaz launches it, relaunches it if it
         // exits and ends it when Topaz quits. Launched by Topaz, it is given
         // TOPAZ_PID and exits when that process does, so it never outlives it.
         if let pid = ParentWatch.parentPid(ProcessInfo.processInfo.environment) {
-            topazWatch = ParentWatch.watch(pid) { [weak self] in
+            loupeWatch = ParentWatch.watch(pid) { [weak self] in
                 MainActor.assumeIsolated {
                     self?.tearDown()
                     exit(0)
@@ -95,13 +92,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         if let button = statusItem?.button {
             button.image = gemIcons.normal
-            button.toolTip = "Loupe"
+            button.toolTip = "LoupeHUD"
             button.action = #selector(statusItemClicked(_:))
             button.target = self
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
-        let topaz = ParentWatch.parentPid(ProcessInfo.processInfo.environment)
-        dictationWatch = DictationWatch(topazPid: topaz) { [weak self] listening in
+        let loupe = ParentWatch.parentPid(ProcessInfo.processInfo.environment)
+        dictationWatch = DictationWatch(loupePid: loupe) { [weak self] listening in
             self?.showDictation(listening)
         }
     }
@@ -367,7 +364,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else if let error = menuBarHiding.lastError, !menuBarHiding.isOn {
             item.toolTip = "macOS refused the last request: \(error.localizedDescription)"
         } else {
-            item.toolTip = "Shows only Loupe's, Tot's and the system's items; the order you set with Cmd-drag is kept. The chevron or \(HotkeyService.Shortcut.menuBarItemsSymbols) shows the rest for \(Int(MenuBarHiding.revealFor)) seconds. While on, the clock does not open Notification Center."
+            item.toolTip = "Shows only the HUD's, Tot's and the system's items; the order you set with Cmd-drag is kept. The chevron or \(HotkeyService.Shortcut.menuBarItemsSymbols) shows the rest for \(Int(MenuBarHiding.revealFor)) seconds. While on, the clock does not open Notification Center."
         }
         return item
     }

@@ -9,7 +9,7 @@ public enum ParentWatch {
     /// The pid in `TOPAZ_PID`, or nil when the helper was not launched by Topaz
     /// (the variable is missing, not a number, or names launchd or the kernel).
     public static func parentPid(_ environment: [String: String]) -> pid_t? {
-        guard let text = environment["TOPAZ_PID"]?.trimmingCharacters(in: .whitespaces),
+        guard let text = environment["LOUPE_PID"]?.trimmingCharacters(in: .whitespaces),
               let pid = pid_t(text), pid > 1 else { return nil }
         return pid
     }

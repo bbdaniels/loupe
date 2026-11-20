@@ -83,9 +83,9 @@ final class WezTermServiceTests: XCTestCase {
     /// config passes it to ssh.
     func testAnIMacTabIsAskedOfTheConfig() {
         let at = Date(timeIntervalSince1970: 1000.25)
-        XCTAssertEqual(WezTerm.openRequest(session: "rc-topaz-1", at: at), "rc-topaz-1\t1000250\n")
+        XCTAssertEqual(WezTerm.openRequest(session: "rc-loupe-1", at: at), "rc-loupe-1\t1000250\n")
         XCTAssertEqual(WezTerm.openRequest(session: "rc-" + String(repeating: "a", count: 40), at: at)?.isEmpty, false)
-        for bad in ["rc-", "rc--x", "rc-Topaz", "rc-a b", "rc-a;rm", "duet", "Topaz (Mac)",
+        for bad in ["rc-", "rc--x", "rc-Loupe", "rc-a b", "rc-a;rm", "duet", "Loupe (Mac)",
                     "rc-" + String(repeating: "a", count: 41)] {
             XCTAssertNil(WezTerm.openRequest(session: bad, at: at), bad)
         }

@@ -1,7 +1,7 @@
 import XCTest
 
 final class PanelToggleTests: XCTestCase {
-    func testAPanelBesideTopazIsHiddenThoughNotKey() {
+    func testAPanelBesideLoupeIsHiddenThoughNotKey() {
         // 2026-11-08: with the close button gone, a click on the gem is how the
         // panel's part of the screen comes back, whichever window has focus.
         XCTAssertEqual(PanelToggle.action(isVisible: true, isOnActiveSpace: true, isUncovered: true), .hide)

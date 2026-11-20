@@ -3,7 +3,7 @@ import Foundation
 import os
 import SQLite3
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "SessionHistory")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "SessionHistory")
 
 // MARK: - Search Result
 
@@ -427,7 +427,7 @@ actor SessionTitler {
 /// takes the queue once per file, so a search issued mid-build waits at most
 /// one file.
 final class TranscriptIndex: @unchecked Sendable {
-    private let queue = DispatchQueue(label: "com.bbdaniels.topaz.loupe.transcript-index", qos: .utility)
+    private let queue = DispatchQueue(label: "com.bbdaniels.loupe.hud.transcript-index", qos: .utility)
     private var db: OpaquePointer?
     /// Bump when the schema or the extraction rule changes: a mismatch drops
     /// and rebuilds the index. 4 (2026-11-03): the per-session working

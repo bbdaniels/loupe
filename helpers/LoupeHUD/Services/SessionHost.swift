@@ -193,7 +193,7 @@ enum IMacMirror {
         }
         // Read stderr while rsync runs, so a full pipe can never stall it.
         var stderrData = Data()
-        let reader = DispatchQueue(label: "com.bbdaniels.topaz.loupe.imac-mirror.stderr")
+        let reader = DispatchQueue(label: "com.bbdaniels.loupe.hud.imac-mirror.stderr")
         reader.async { stderrData = errors.fileHandleForReading.readDataToEndOfFile() }
         if finished.wait(timeout: .now() + timeLimit) == .timedOut {
             process.terminate()

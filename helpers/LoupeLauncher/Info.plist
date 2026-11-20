@@ -11,9 +11,9 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Topaz Launcher</string>
+	<string>Loupe Launcher</string>
 	<key>CFBundleDisplayName</key>
-	<string>Topaz Launcher</string>
+	<string>Loupe Launcher</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

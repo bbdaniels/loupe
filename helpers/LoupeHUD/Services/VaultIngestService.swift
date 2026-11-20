@@ -2,7 +2,7 @@ import Foundation
 import Combine
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "VaultIngestService")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "VaultIngestService")
 
 /// Reads two pieces of local state the vault's workers leave behind and
 /// publishes them for the Vault tab:

@@ -9,15 +9,15 @@ import QuartzCore
 import SwiftUI
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "ScreenCover")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "ScreenCover")
 
 extension Notification.Name {
     /// Posted from the event-tap thread when a physical key/click lands on a
     /// covered screen. The tap swallows the event itself, so this is the only
     /// channel the cover has for "someone touched the machine".
-    static let loupeCoverInput = Notification.Name("com.bbdaniels.topaz.loupe.cover.input")
+    static let loupeCoverInput = Notification.Name("com.bbdaniels.loupe.hud.cover.input")
     /// Escape hatch chord recognised inside the tap callback.
-    static let loupeCoverPanic = Notification.Name("com.bbdaniels.topaz.loupe.cover.panic")
+    static let loupeCoverPanic = Notification.Name("com.bbdaniels.loupe.hud.cover.panic")
 }
 
 private enum CoverTiming {
@@ -86,7 +86,7 @@ private final class SleepAssertionBox {
     /// timer; declaring user activity does.
     func declareUserActivity() {
         let result = IOPMAssertionDeclareUserActivity(
-            "Loupe screen cover" as CFString,
+            "LoupeHUD screen cover" as CFString,
             kIOPMUserActiveLocal,
             &activityAssertionID
         )
@@ -255,7 +255,7 @@ final class ScreenCoverService: ObservableObject {
         lastFailAt = nil
         lastError = nil
         agents.start()
-        sleep.prevent(reason: "Loupe: screen covered — agents running")
+        sleep.prevent(reason: "LoupeHUD: screen covered — agents running")
         startActivityTimer()
 
         buildWindows()
@@ -483,7 +483,7 @@ final class ScreenCoverService: ObservableObject {
             CFRunLoopRemoveSource(runLoop, source, .commonModes)
             Unmanaged<CoverTapContext>.fromOpaque(refcon).release()
         }
-        thread.name = "com.bbdaniels.topaz.loupe.screencover.tap"
+        thread.name = "com.bbdaniels.loupe.hud.screencover.tap"
         thread.qualityOfService = .userInteractive
         thread.start()
         tapThread = thread
@@ -575,7 +575,7 @@ final class ScreenCoverService: ObservableObject {
         stopInputBlocking()
 
         Task { [weak self] in
-            let granted = await Self.evaluate(context, reason: "Uncover the Loupe screen")
+            let granted = await Self.evaluate(context, reason: "Uncover the LoupeHUD screen")
             guard let self else { return }
             self.activeContext = nil
             guard self.isCovered, self.authInProgress else {

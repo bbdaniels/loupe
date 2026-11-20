@@ -27,21 +27,21 @@ jobs:
 
       - name: Build
         run: |
-          xcodebuild -scheme Loupe -configuration Release \
+          xcodebuild -scheme LoupeHUD -configuration Release \
             -derivedDataPath build \
             CODE_SIGN_IDENTITY="-" \
             build
 
       - name: Package app
         run: |
-          APP_PATH="build/Build/Products/Release/Loupe.app"
+          APP_PATH="build/Build/Products/Release/LoupeHUD.app"
           cd "$(dirname "$APP_PATH")"
-          zip -r Loupe.app.zip Loupe.app
+          zip -r LoupeHUD.app.zip LoupeHUD.app
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: build/Build/Products/Release/Loupe.app.zip
+          files: build/Build/Products/Release/LoupeHUD.app.zip
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

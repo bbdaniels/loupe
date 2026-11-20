@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "UsageService")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "UsageService")
 
 /// Fetches claude.ai subscription usage (5-hour and weekly windows) from the
 /// same private endpoint backing https://claude.ai/settings/usage. Authenticates

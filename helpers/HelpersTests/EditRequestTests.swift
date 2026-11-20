@@ -5,12 +5,12 @@ import XCTest
 final class EditRequestTests: XCTestCase {
     func testAGoodRequestIsRead() throws {
         let data = Data("""
-            {"version":1,"pane_id":7,"file":"/Users/u/Library/Caches/Topaz/edits/files/intro.edit.md",
+            {"version":1,"pane_id":7,"file":"/Users/u/Library/Caches/Loupe/edits/files/intro.edit.md",
              "shown":"~/Projects/paper/intro.edit.md","remote":true}
             """.utf8)
         XCTAssertEqual(try EditRequest.parse(data).get(),
                        EditRequest(version: 1, paneId: 7,
-                                   file: "/Users/u/Library/Caches/Topaz/edits/files/intro.edit.md",
+                                   file: "/Users/u/Library/Caches/Loupe/edits/files/intro.edit.md",
                                    shown: "~/Projects/paper/intro.edit.md", remote: true))
     }
 

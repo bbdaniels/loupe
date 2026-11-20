@@ -3,7 +3,7 @@ import Combine
 import AppKit
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "VaultManager")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "VaultManager")
 
 @MainActor
 class VaultManager: ObservableObject {

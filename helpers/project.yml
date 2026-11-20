@@ -1,6 +1,6 @@
-name: Loupe
+name: Helpers
 options:
-  bundleIdPrefix: com.bbdaniels.topaz
+  bundleIdPrefix: com.bbdaniels.loupe
   deploymentTarget:
     macOS: "14.0"
   xcodeVersion: "16.0"
@@ -8,32 +8,32 @@ options:
 
 # Code the Topaz helpers share (Loupe and Topaz Launcher).
 packages:
-  TopazKit:
-    path: TopazKit
+  LoupeKit:
+    path: LoupeKit
 
 targets:
-  Loupe:
+  LoupeHUD:
     type: application
     platform: macOS
     sources:
-      - path: Loupe
+      - path: LoupeHUD
         excludes:
           - "**/*.entitlements"
     resources:
-      - path: Loupe/Resources/ntfy-notify.sh
+      - path: LoupeHUD/Resources/ntfy-notify.sh
     dependencies:
       - sdk: CoreText.framework
-      - package: TopazKit
+      - package: LoupeKit
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.bbdaniels.topaz.loupe
-        PRODUCT_NAME: Loupe
+        PRODUCT_BUNDLE_IDENTIFIER: com.bbdaniels.loupe.hud
+        PRODUCT_NAME: LoupeHUD
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         # Written by hand, not generated: it declares the .topazedit document
         # type (EditRequest) and the topaz:// URL scheme (SessionLink).
-        INFOPLIST_FILE: Loupe/Resources/Info.plist
-        CODE_SIGN_ENTITLEMENTS: Loupe/Resources/Loupe.entitlements
-        CODE_SIGN_IDENTITY: "Topaz Dev"
+        INFOPLIST_FILE: LoupeHUD/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: LoupeHUD/Resources/LoupeHUD.entitlements
+        CODE_SIGN_IDENTITY: "Loupe Dev"
         SWIFT_VERSION: "5.9"
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_HARDENED_RUNTIME: YES
@@ -42,22 +42,22 @@ targets:
   # Topaz Launcher: the application launcher (Option-Space) and Magnet's
   # window snapping, nested in Topaz.app/Contents/Helpers and supervised by
   # Topaz (wezterm-gui helpers.rs). Built by topaz-build.sh.
-  TopazLauncher:
+  LoupeLauncher:
     type: application
     platform: macOS
     sources:
-      - path: TopazLauncher
+      - path: LoupeLauncher
         excludes:
           - Info.plist
     dependencies:
-      - package: TopazKit
+      - package: LoupeKit
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.bbdaniels.topaz.launcher
-        PRODUCT_NAME: "Topaz Launcher"
+        PRODUCT_BUNDLE_IDENTIFIER: com.bbdaniels.loupe.launcher
+        PRODUCT_NAME: "Loupe Launcher"
         MACOSX_DEPLOYMENT_TARGET: "14.0"
-        INFOPLIST_FILE: TopazLauncher/Info.plist
-        CODE_SIGN_IDENTITY: "Topaz Dev"
+        INFOPLIST_FILE: LoupeLauncher/Info.plist
+        CODE_SIGN_IDENTITY: "Loupe Dev"
         SWIFT_VERSION: "5.9"
         GENERATE_INFOPLIST_FILE: NO
         ENABLE_HARDENED_RUNTIME: YES
@@ -67,41 +67,40 @@ targets:
   # Unit tests for the pure, Foundation-only logic. No host app: the bundle
   # compiles the sources it tests directly, so tests never launch Loupe.
   # Run: xcodebuild test -scheme LoupeTests
-  LoupeTests:
+  HelpersTests:
     type: bundle.unit-test
     platform: macOS
     sources:
-      - path: LoupeTests
-      - path: Loupe/Services/ClaudeProcessClassifier.swift
-      - path: Loupe/Services/VaultProjectTree.swift
-      - path: Loupe/Services/ActiveTasks.swift
-      - path: Loupe/Services/VaultAccess.swift
-      - path: Loupe/Services/TranscriptHead.swift
-      - path: Loupe/Services/SessionFiling.swift
-      - path: Loupe/Services/SessionHost.swift
-      - path: Loupe/Services/SessionScan.swift
-      - path: Loupe/Services/IMacLauncher.swift
-      - path: Loupe/Services/SessionLink.swift
-      - path: Loupe/Services/PanelToggle.swift
-      - path: Loupe/Services/HostProcs.swift
-      - path: Loupe/Services/WezTermService.swift
-      - path: Loupe/Services/EditRequest.swift
-      - path: Loupe/Services/RemoteControlReload.swift
-      - path: Loupe/Services/MenuBarHiding.swift
-      - path: Loupe/Services/DictationLight.swift
-      - path: Loupe/Views/StripHosting.swift
-      - path: Loupe/Services/PanelPlacement.swift
-      - path: Loupe/Services/SecurityTool.swift
-      - path: Loupe/Services/DataMigration.swift
-      - path: TopazLauncher/AppMatcher.swift
-      - path: TopazLauncher/SnapLayout.swift
-      - path: TopazLauncher/HotKeyCenter.swift
-      - path: TopazLauncher/WindowMover.swift
+      - path: HelpersTests
+      - path: LoupeHUD/Services/ClaudeProcessClassifier.swift
+      - path: LoupeHUD/Services/VaultProjectTree.swift
+      - path: LoupeHUD/Services/ActiveTasks.swift
+      - path: LoupeHUD/Services/VaultAccess.swift
+      - path: LoupeHUD/Services/TranscriptHead.swift
+      - path: LoupeHUD/Services/SessionFiling.swift
+      - path: LoupeHUD/Services/SessionHost.swift
+      - path: LoupeHUD/Services/SessionScan.swift
+      - path: LoupeHUD/Services/IMacLauncher.swift
+      - path: LoupeHUD/Services/SessionLink.swift
+      - path: LoupeHUD/Services/PanelToggle.swift
+      - path: LoupeHUD/Services/HostProcs.swift
+      - path: LoupeHUD/Services/WezTermService.swift
+      - path: LoupeHUD/Services/EditRequest.swift
+      - path: LoupeHUD/Services/RemoteControlReload.swift
+      - path: LoupeHUD/Services/MenuBarHiding.swift
+      - path: LoupeHUD/Services/DictationLight.swift
+      - path: LoupeHUD/Views/StripHosting.swift
+      - path: LoupeHUD/Services/PanelPlacement.swift
+      - path: LoupeHUD/Services/SecurityTool.swift
+      - path: LoupeLauncher/AppMatcher.swift
+      - path: LoupeLauncher/SnapLayout.swift
+      - path: LoupeLauncher/HotKeyCenter.swift
+      - path: LoupeLauncher/WindowMover.swift
     dependencies:
-      - package: TopazKit
+      - package: LoupeKit
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.bbdaniels.topaz.loupe.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.bbdaniels.loupe.hud.tests
         GENERATE_INFOPLIST_FILE: YES
         MACOSX_DEPLOYMENT_TARGET: "14.0"
         SWIFT_VERSION: "5.9"
@@ -109,4 +108,4 @@ targets:
         CODE_SIGN_STYLE: Manual
     scheme:
       testTargets:
-        - LoupeTests
+        - HelpersTests

@@ -2,7 +2,7 @@ import AppKit
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "WezTerm")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "WezTerm")
 
 /// THE terminal Loupe opens sessions in (Ben, 2026-11-07): Topaz, Ben's
 /// build of WezTerm (renamed 2026-11-08; binaries and `wezterm cli` keep the
@@ -28,9 +28,9 @@ private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "W
 /// The parsing, matching and argument building are pure and unit tested;
 /// `open`, `panes` and `activateApp` run them.
 enum WezTerm {
-    static let appPath = "/Applications/Topaz.app"
+    static let appPath = "/Applications/Loupe.app"
     static let cliPath = appPath + "/Contents/MacOS/wezterm"
-    static let bundleIdentifier = "com.bbdaniels.topaz"
+    static let bundleIdentifier = "com.bbdaniels.loupe"
 
     /// One row of `wezterm cli list --format json`: a pane, its tab and window.
     struct Pane: Equatable, Decodable {
@@ -239,7 +239,7 @@ enum WezTerm {
     /// Run the command line with `input` on stdin; nil when it exits 0, else
     /// what went wrong, its standard error when it wrote one.
     static func run(_ args: [String], input: Data) -> String? {
-        guard isInstalled else { return "Topaz is not installed at \(appPath)." }
+        guard isInstalled else { return "Loupe is not installed at \(appPath)." }
         let p = Process()
         p.executableURL = URL(fileURLWithPath: cliPath)
         p.arguments = args
@@ -311,7 +311,7 @@ enum WezTerm {
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try Data(line.utf8).write(to: url, options: .atomic)
         } catch {
-            logger.error("Topaz open request not written: \(error.localizedDescription, privacy: .public)")
+            logger.error("Loupe open request not written: \(error.localizedDescription, privacy: .public)")
             return false
         }
         return activateApp()

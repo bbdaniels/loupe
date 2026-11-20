@@ -96,7 +96,7 @@ final class MenuBarHiding {
 
     init(restrictor: MenuBarRestricting = AssessmentModeRestrictor(),
          defaults: UserDefaults = .standard,
-         ownBundleIdentifier: String = Bundle.main.bundleIdentifier ?? "com.bbdaniels.topaz.loupe",
+         ownBundleIdentifier: String = Bundle.main.bundleIdentifier ?? "com.bbdaniels.loupe.hud",
          schedule: @escaping Schedule = MenuBarHiding.runLoopTimer) {
         self.restrictor = restrictor
         self.defaults = defaults

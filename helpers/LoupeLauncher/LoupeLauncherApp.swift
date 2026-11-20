@@ -1,8 +1,8 @@
 import Cocoa
-import TopazKit
+import LoupeKit
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.launcher", category: "App")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.launcher", category: "App")
 
 /// Topaz Launcher: Topaz's application launcher (Command-Space) and Magnet's
 /// window snapping, as a helper Topaz starts from
@@ -20,10 +20,10 @@ final class LauncherDelegate: NSObject, NSApplicationDelegate {
     private var parentWatch: DispatchSourceProcess?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        PermissionReport.log(subsystem: "com.bbdaniels.topaz.launcher")
+        PermissionReport.log(subsystem: "com.bbdaniels.loupe.launcher")
         if let pid = ParentWatch.parentPid(ProcessInfo.processInfo.environment) {
             parentWatch = ParentWatch.watch(pid) {
-                logger.info("Topaz (\(pid, privacy: .public)) exited: quitting")
+                logger.info("Loupe (\(pid, privacy: .public)) exited: quitting")
                 NSApp.terminate(nil)
             }
         }
@@ -44,7 +44,7 @@ final class LauncherDelegate: NSObject, NSApplicationDelegate {
 }
 
 @main
-enum TopazLauncherMain {
+enum LoupeLauncherMain {
     static func main() {
         let app = NSApplication.shared
         let delegate = MainActor.assumeIsolated { LauncherDelegate() }

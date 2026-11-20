@@ -13,7 +13,7 @@
 //!
 //! This is the state alone, without the posting, so that it can be tested.
 use std::time::{Duration, Instant};
-pub const NOTIFICATION: &str = "com.bbdaniels.topaz.dictation";
+pub const NOTIFICATION: &str = "com.bbdaniels.loupe.dictation";
 /// Loupe reverts after 3 s without a refresh (DictationLight.swift).
 pub const REFRESH_EVERY: Duration = Duration::from_secs(1);
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -139,7 +139,7 @@ mod tests {
     }
 
     #[test]
-    fn the_states_are_named_as_loupe_reads_them() {
+    fn the_states_are_named_as_the_hud_reads_them() {
         assert_eq!(State::Listening.as_str(), "listening");
         assert_eq!(State::Stopped.as_str(), "stopped");
     }

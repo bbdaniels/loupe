@@ -2,7 +2,7 @@ import Cocoa
 import SwiftUI
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "Panel")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "Panel")
 
 class HUDPanelController {
     private var panel: NSPanel?

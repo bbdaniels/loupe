@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "ClaudeProcessMonitor")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "ClaudeProcessMonitor")
 
 /// Scans Claude Code processes for the menu-bar menu: background jobs,
 /// orphans and their total memory.

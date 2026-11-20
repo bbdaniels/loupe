@@ -308,7 +308,7 @@ mod tests {
     /// Topaz (7) is frontmost and Tot (9), a menu bar app, has the keyboard
     /// through a panel that never brought it to the front.
     #[test]
-    fn a_panel_that_has_the_keyboard_gets_the_words_though_topaz_is_frontmost() {
+    fn a_panel_that_has_the_keyboard_gets_the_words_though_loupe_is_frontmost() {
         let untrusted = Focus {
             event_target: Some(9),
             focused_app: None,
@@ -328,12 +328,12 @@ mod tests {
         };
         assert_eq!(target_for(no_target.owner(), 7, false), Target::App(9));
         // Ben in Topaz's own window: the pane.
-        let in_topaz = Focus {
+        let in_loupe = Focus {
             event_target: Some(7),
             focused_app: Some(7),
             frontmost: Some(7),
         };
-        assert_eq!(target_for(in_topaz.owner(), 7, false), Target::Pane);
+        assert_eq!(target_for(in_loupe.owner(), 7, false), Target::Pane);
         // Nothing read at all.
         assert_eq!(Focus::default().owner(), None);
     }

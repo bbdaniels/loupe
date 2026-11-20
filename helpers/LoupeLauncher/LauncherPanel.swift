@@ -1,8 +1,8 @@
 import Cocoa
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.launcher", category: "Panel")
-private let timing = Logger(subsystem: "com.bbdaniels.topaz.launcher", category: "Timing")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.launcher", category: "Panel")
+private let timing = Logger(subsystem: "com.bbdaniels.loupe.launcher", category: "Timing")
 
 /// A panel that takes the keyboard without activating the launcher, so the
 /// app Ben was in stays frontmost until he picks another.

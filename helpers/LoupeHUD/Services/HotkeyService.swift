@@ -1,7 +1,7 @@
 import Cocoa
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "Hotkey")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "Hotkey")
 
 // MARK: - Hotkey Service
 

@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "StdioMCP")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "StdioMCP")
 
 // MARK: - Stdio Transport Actor
 
@@ -265,7 +265,7 @@ class StdioMCPClient: MCPClientProtocol {
                 "protocolVersion": .string("2024-11-05"),
                 "capabilities": .object([:]),
                 "clientInfo": .object([
-                    "name": .string("Loupe"),
+                    "name": .string("LoupeHUD"),
                     "version": .string("1.0")
                 ])
             ])

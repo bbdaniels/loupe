@@ -3,7 +3,7 @@ import Combine
 import CoreServices
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "VaultProjectService")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "VaultProjectService")
 
 /// Lists projects in the Obsidian vault and surfaces their canonical
 /// per-project metadata (the `Tasks.md` frontmatter: status, updated, cwds,

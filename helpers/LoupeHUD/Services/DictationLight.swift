@@ -16,21 +16,21 @@ import Foundation
 ///
 /// This is the state alone, so that it can be tested; DictationWatch observes.
 struct DictationLight {
-    static let name = Notification.Name("com.bbdaniels.topaz.dictation")
+    static let name = Notification.Name("com.bbdaniels.loupe.dictation")
     static let stale: TimeInterval = 3
 
     /// The Topaz whose notifications count; nil counts any.
-    let topazPid: Int32?
+    let loupePid: Int32?
     /// The last "listening", while no "stopped" has come since.
     private(set) var lastListening: Date?
 
-    init(topazPid: Int32?) {
-        self.topazPid = topazPid
+    init(loupePid: Int32?) {
+        self.loupePid = loupePid
     }
 
     mutating func receive(_ info: [AnyHashable: Any]?, at now: Date) {
         guard let state = info?["state"] as? String else { return }
-        if let want = topazPid {
+        if let want = loupePid {
             let pid = (info?["pid"] as? String).flatMap { Int32($0) }
             guard pid == want else { return }
         }
@@ -61,8 +61,8 @@ final class DictationWatch: NSObject {
     private var lit = false
     private var expiry: Timer?
 
-    init(topazPid: Int32?, onChange: @escaping (Bool) -> Void) {
-        light = DictationLight(topazPid: topazPid)
+    init(loupePid: Int32?, onChange: @escaping (Bool) -> Void) {
+        light = DictationLight(loupePid: loupePid)
         self.onChange = onChange
         super.init()
         // Delivered even while this app is inactive, which a menu bar app

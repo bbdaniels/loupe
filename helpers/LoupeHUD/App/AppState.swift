@@ -1,7 +1,7 @@
 import SwiftUI
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "AppState")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "AppState")
 
 @MainActor
 class AppState: ObservableObject {

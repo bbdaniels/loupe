@@ -1,18 +1,18 @@
 import XCTest
-import TopazKit
+import LoupeKit
 
 final class ParentWatchTests: XCTestCase {
-    func testTheParentIsReadFromTopazPid() {
-        XCTAssertEqual(ParentWatch.parentPid(["TOPAZ_PID": "4242"]), 4242)
-        XCTAssertEqual(ParentWatch.parentPid(["TOPAZ_PID": " 4242 "]), 4242)
+    func testTheParentIsReadFromLoupePid() {
+        XCTAssertEqual(ParentWatch.parentPid(["LOUPE_PID": "4242"]), 4242)
+        XCTAssertEqual(ParentWatch.parentPid(["LOUPE_PID": " 4242 "]), 4242)
     }
 
     func testNoParentWithoutAUsablePid() {
         XCTAssertNil(ParentWatch.parentPid([:]))
-        XCTAssertNil(ParentWatch.parentPid(["TOPAZ_PID": ""]))
-        XCTAssertNil(ParentWatch.parentPid(["TOPAZ_PID": "topaz"]))
-        XCTAssertNil(ParentWatch.parentPid(["TOPAZ_PID": "1"]))
-        XCTAssertNil(ParentWatch.parentPid(["TOPAZ_PID": "-5"]))
+        XCTAssertNil(ParentWatch.parentPid(["LOUPE_PID": ""]))
+        XCTAssertNil(ParentWatch.parentPid(["LOUPE_PID": "loupe"]))
+        XCTAssertNil(ParentWatch.parentPid(["LOUPE_PID": "1"]))
+        XCTAssertNil(ParentWatch.parentPid(["LOUPE_PID": "-5"]))
     }
 
     /// A live process that is killed fires the watch once, and only then.

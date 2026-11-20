@@ -68,15 +68,15 @@ final class MenuBarHidingTests: XCTestCase {
     }
 
     private func make() -> MenuBarHiding {
-        MenuBarHiding(restrictor: fake, defaults: defaults, ownBundleIdentifier: "com.bbdaniels.topaz.loupe",
+        MenuBarHiding(restrictor: fake, defaults: defaults, ownBundleIdentifier: "com.bbdaniels.loupe.hud",
                       schedule: { [timers] in timers!.schedule($0, $1) })
     }
 
-    func testTurningOnAllowsOnlyLoupeTotAndTheSystemItems() {
+    func testTurningOnAllowsOnlyLoupeHUDTotAndTheSystemItems() {
         let h = make()
         h.toggle()
         XCTAssertEqual(fake.calls.count, 1)
-        XCTAssertEqual(fake.calls[0].bundles, ["com.bbdaniels.topaz.loupe", "com.iconfactory.Tot"])
+        XCTAssertEqual(fake.calls[0].bundles, ["com.bbdaniels.loupe.hud", "com.iconfactory.Tot"])
         XCTAssertEqual(fake.calls[0].system, Array(0..<64))
         XCTAssertFalse(h.isOn, "on only once macOS grants it")
         fake.grant()
@@ -321,7 +321,7 @@ final class AssessmentModeRestrictorTests: XCTestCase {
         XCTAssertTrue(restrictor.isAvailable)
         var result: Result<MenuBarRestriction, Error>?
         let answered = expectation(description: "answered")
-        restrictor.activate(allowedSystemItems: Array(0..<64), allowedBundleIdentifiers: ["com.bbdaniels.topaz.loupe"]) {
+        restrictor.activate(allowedSystemItems: Array(0..<64), allowedBundleIdentifiers: ["com.bbdaniels.loupe.hud"]) {
             result = $0
             answered.fulfill()
         }

@@ -5,9 +5,9 @@
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleName</key>
-	<string>Loupe</string>
+	<string>LoupeHUD</string>
 	<key>CFBundleDisplayName</key>
-	<string>Loupe</string>
+	<string>LoupeHUD</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -20,14 +20,14 @@
 	<array>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Topaz Edit Request</string>
+			<string>Loupe Edit Request</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSHandlerRank</key>
 			<string>Alternate</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.bbdaniels.topaz.edit-request</string>
+				<string>com.bbdaniels.loupe.edit-request</string>
 			</array>
 		</dict>
 	</array>
@@ -35,12 +35,12 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.bbdaniels.topaz.session-link</string>
+			<string>com.bbdaniels.loupe.session-link</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>topaz</string>
+				<string>loupe</string>
 			</array>
 		</dict>
 	</array>
@@ -48,9 +48,9 @@
 	<array>
 		<dict>
 			<key>UTTypeIdentifier</key>
-			<string>com.bbdaniels.topaz.edit-request</string>
+			<string>com.bbdaniels.loupe.edit-request</string>
 			<key>UTTypeDescription</key>
-			<string>Topaz Edit Request</string>
+			<string>Loupe Edit Request</string>
 			<key>UTTypeConformsTo</key>
 			<array>
 				<string>public.json</string>
@@ -59,7 +59,7 @@
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>topazedit</string>
+					<string>loupeedit</string>
 				</array>
 			</dict>
 		</dict>
@@ -69,14 +69,14 @@
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSContactsUsageDescription</key>
-	<string>Loupe looks up attendee names and organizations for meeting briefings.</string>
+	<string>LoupeHUD looks up attendee names and organizations for meeting briefings.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>Loupe displays today's calendar events and prepares meeting briefings.</string>
+	<string>LoupeHUD displays today's calendar events and prepares meeting briefings.</string>
 	<key>NSRemindersFullAccessUsageDescription</key>
-	<string>Loupe shows your reminders in the What's Next panel and lets you complete them.</string>
+	<string>LoupeHUD shows your reminders in the What's Next panel and lets you complete them.</string>
 	<key>NSAccessibilityUsageDescription</key>
-	<string>Loupe blocks stray input while the screen cover is up and hears its global shortcuts.</string>
+	<string>LoupeHUD blocks stray input while the screen cover is up and hears its global shortcuts.</string>
 	<key>NSUserNotificationUsageDescription</key>
-	<string>Loupe shows desktop notifications when Claude needs your attention.</string>
+	<string>LoupeHUD shows desktop notifications when Claude needs your attention.</string>
 </dict>
 </plist>

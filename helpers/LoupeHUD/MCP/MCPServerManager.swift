@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "MCPManager")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "MCPManager")
 
 @MainActor
 class MCPServerManager: ObservableObject {

@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "RemoteControlServer")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "RemoteControlServer")
 
 /// Owns the persistent `claude remote-control` server that lets claude.ai/code
 /// and the Claude app start new sessions on this Mac (the counterpart of the
@@ -218,7 +218,7 @@ final class RemoteControlServerService: ObservableObject {
                     + " would end; nothing was changed. Run this again when they end."
             }
         case "status": break
-        default: error = "Usage: Loupe --remote-control on|off|status"
+        default: error = "Usage: LoupeHUD --remote-control on|off|status"
         }
         if let error { FileHandle.standardError.write(Data((error + "\n").utf8)) }
         let (enabled, pid, live) = observe()

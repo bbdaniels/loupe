@@ -213,9 +213,9 @@ final class ProjectResolverTests: XCTestCase {
             return URL(fileURLWithPath: override)
         }
         return URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()      // LoupeTests
-            .deletingLastPathComponent()      // loupe
-            .deletingLastPathComponent()      // the Topaz checkout (wezterm)
+            .deletingLastPathComponent()      // HelpersTests
+            .deletingLastPathComponent()      // helpers
+            .deletingLastPathComponent()      // the Loupe checkout (wezterm)
             .deletingLastPathComponent()      // Projects
             .appending(path: "personal/lib/fixtures/resolver_cases.json")
     }

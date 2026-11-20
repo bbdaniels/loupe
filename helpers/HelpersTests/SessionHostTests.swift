@@ -83,7 +83,7 @@ final class SessionHostTests: XCTestCase {
     private func record(_ id: String, kind: String = "interactive", tmux: String? = nil,
                         server: String? = nil, service: String? = nil,
                         entrypoint: String = "cli") -> ClaudeSessionRecord {
-        ClaudeSessionRecord(pid: 1, sessionId: id, cwd: "/Users/x/Projects/topaz", kind: kind,
+        ClaudeSessionRecord(pid: 1, sessionId: id, cwd: "/Users/x/Projects/loupe", kind: kind,
                             entrypoint: entrypoint, name: nil, bridgeSessionId: "session_01", jobId: nil,
                             status: "busy", waitingFor: nil, startedAt: nil, updatedAt: nil, procStart: nil,
                             tmux: tmux, tmuxServer: server, service: service)
@@ -94,7 +94,7 @@ final class SessionHostTests: XCTestCase {
     func testAMacBookGateSessionGetsALine() throws {
         let json = """
         {"ok": true, "live": [{"pid": 77680, "sessionId": "c7a4dc85-c1a6-4836-beed-d18176647b09",
-          "cwd": "/Users/bbdaniels/Projects/topaz", "kind": "interactive", "entrypoint": "cli", "name": "topaz-71",
+          "cwd": "/Users/bbdaniels/Projects/loupe", "kind": "interactive", "entrypoint": "cli", "name": "loupe-71",
           "bridgeSessionId": "session_01PZ", "status": "busy", "startedAt": 1795032284650,
           "procStart": "Wed Nov 18 20:04:44 2026", "tmux": "rc-loupe-mac-gate:@37.%37", "tmuxServer": "pi-gate",
           "attach": "tmux -L pi-gate attach -t =rc-loupe-mac-gate"}]}

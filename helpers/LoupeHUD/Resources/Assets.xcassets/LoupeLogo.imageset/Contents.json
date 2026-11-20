@@ -1,8 +1,8 @@
 {
   "images" : [
-    { "filename" : "topaz.png", "idiom" : "universal", "scale" : "1x" },
-    { "filename" : "topaz@2x.png", "idiom" : "universal", "scale" : "2x" },
-    { "filename" : "topaz@3x.png", "idiom" : "universal", "scale" : "3x" }
+    { "filename" : "loupe.png", "idiom" : "universal", "scale" : "1x" },
+    { "filename" : "loupe@2x.png", "idiom" : "universal", "scale" : "2x" },
+    { "filename" : "loupe@3x.png", "idiom" : "universal", "scale" : "3x" }
   ],
   "info" : {
     "author" : "xcode",

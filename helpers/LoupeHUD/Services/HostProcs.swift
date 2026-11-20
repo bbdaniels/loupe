@@ -173,7 +173,7 @@ enum HostProcs {
         guard !todo.isEmpty else { return }
         DispatchQueue.global(qos: .utility).async {
             for tree in todo {
-                if let why = reap(tree) { NSLog("Loupe: could not stop %@ %d: %@", tree.kind, tree.pid, why) }
+                if let why = reap(tree) { NSLog("LoupeHUD: could not stop %@ %d: %@", tree.kind, tree.pid, why) }
             }
             DispatchQueue.main.async(execute: done)
         }

@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "SSEMCP")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "SSEMCP")
 
 // MARK: - SSE Transport Actor
 
@@ -229,7 +229,7 @@ class SSEMCPClient: MCPClientProtocol {
                 "protocolVersion": .string("2024-11-05"),
                 "capabilities": .object([:]),
                 "clientInfo": .object([
-                    "name": .string("Loupe"),
+                    "name": .string("LoupeHUD"),
                     "version": .string("1.0")
                 ])
             ])

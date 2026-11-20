@@ -3,7 +3,7 @@ import Combine
 import AppKit
 import os
 
-private let logger = Logger(subsystem: "com.bbdaniels.topaz.loupe", category: "AgentsService")
+private let logger = Logger(subsystem: "com.bbdaniels.loupe.hud", category: "AgentsService")
 
 /// Reads the Claude Code daemon's on-disk state and exposes it as live
 /// `AgentSession` rows, plus the documented scriptable management verbs.
@@ -676,8 +676,8 @@ final class AgentsService: ObservableObject {
     /// alert (`SessionLink.notFound`).
     func open(sessionLink url: URL) {
         guard let link = SessionLink.parse(url) else {
-            Self.linkAlert("Loupe cannot open this link",
-                           "A session link is topaz://session/imac/<name> or topaz://session/mac/<name>, the name a pi-gate session name.\n\n\(url.absoluteString)")
+            Self.linkAlert("The HUD cannot open this link",
+                           "A session link is loupe://session/imac/<name> or loupe://session/mac/<name>, the name a pi-gate session name.\n\n\(url.absoluteString)")
             return
         }
         let host = link.sessionHost
@@ -691,7 +691,7 @@ final class AgentsService: ObservableObject {
                 if let a = self.agents.first(where: { $0.gateHost == host && $0.gateTmux == link.tmuxSession })
                     ?? (host == .mac ? self.agents.first { $0.isAlive && $0.gateHost == nil && $0.sessionId != nil && $0.sessionId == held } : nil) {
                     if !Self.open(a) {
-                        Self.linkAlert("The session did not open", "Topaz could not open a tab for \(link.tmuxSession).")
+                        Self.linkAlert("The session did not open", "Loupe could not open a tab for \(link.tmuxSession).")
                     }
                 } else {
                     let alert = link.notFound(answered: GateLive.answered(host))

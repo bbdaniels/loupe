@@ -59,12 +59,12 @@ mod imp {
 
     const HELPERS: &[Helper] = &[
         Helper {
-            name: "Loupe",
-            bundle_id: "com.bbdaniels.topaz.loupe",
+            name: "LoupeHUD",
+            bundle_id: "com.bbdaniels.loupe.hud",
         },
         Helper {
-            name: "Topaz Launcher",
-            bundle_id: "com.bbdaniels.topaz.launcher",
+            name: "Loupe Launcher",
+            bundle_id: "com.bbdaniels.loupe.launcher",
         },
     ];
 
@@ -210,7 +210,7 @@ mod imp {
             let () = msg_send![config, setActivates: false];
             let () = msg_send![config, setAddsToRecentItems: false];
             let () = msg_send![config, setPromptsUserIfNeeded: false];
-            let key = NSString::from_str("TOPAZ_PID");
+            let key = NSString::from_str("LOUPE_PID");
             let value = NSString::from_str(&std::process::id().to_string());
             let env = NSDictionary::from_slices(&[&*key], &[&*value]);
             let () = msg_send![config, setEnvironment: &*env];
