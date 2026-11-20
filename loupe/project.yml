@@ -81,6 +81,7 @@ targets:
       - path: Loupe/Services/SessionHost.swift
       - path: Loupe/Services/SessionScan.swift
       - path: Loupe/Services/IMacLauncher.swift
+      - path: Loupe/Services/FileDelivery.swift
       - path: Loupe/Services/SessionLink.swift
       - path: Loupe/Services/PanelToggle.swift
       - path: Loupe/Services/HostProcs.swift

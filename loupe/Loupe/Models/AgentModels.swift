@@ -241,6 +241,10 @@ struct AgentSession: Identifiable, Equatable {
     /// set by `AgentsService.reload` for a live session; nil when none is
     /// written yet.
     var title: String? = nil
+    /// The session's transcript on this Mac, for a session that runs here;
+    /// nil for an iMac session, whose transcript is the iMac's
+    /// (`FileDeliveryService` follows both).
+    var transcriptPath: String? = nil
     /// True while the CLI reports "shell": the session's turn waits on one
     /// shell command (`SessionLight.holding`).
     var inShell: Bool = false

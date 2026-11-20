@@ -23,6 +23,18 @@ struct LoupeApp: App {
         if let i = args.firstIndex(of: "--remote-control") {
             exit(RemoteControlServerService.commandLine(args.indices.contains(i + 1) ? args[i + 1] : "status"))
         }
+        // `Loupe --file-deliveries <transcript.jsonl>`: print the
+        // SendUserFile calls a transcript holds, as the panel's cards read
+        // them. Read-only.
+        if let i = args.firstIndex(of: "--file-deliveries"), args.indices.contains(i + 1) {
+            FileHandle.standardOutput.write(Data(FileDeliveryRecord.report(path: args[i + 1]).utf8))
+            exit(0)
+        }
+        // `Loupe --fetch-file-delivery <call id>`: bring a card's files here
+        // as a click would, without opening them, and print where each is.
+        if let i = args.firstIndex(of: "--fetch-file-delivery"), args.indices.contains(i + 1) {
+            exit(FileDeliveryService.fetchCommandLine(args[i + 1]))
+        }
     }
 
     var body: some Scene {
