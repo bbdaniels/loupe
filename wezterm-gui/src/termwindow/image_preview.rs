@@ -38,6 +38,13 @@
 //! image path is, but it has no picture to preview: a plain click hands it
 //! to Loupe's editor instead of Preview, through a request file that names
 //! the local copy and the pane it came from.
+//!
+//! A file a session sends Ben (Claude Code's SendUserFile) is printed as
+//! `[file]<path> (<size>)`. The path after that marker is a reference
+//! whatever its name ends in: it is the message that is read, not a list
+//! of file types. It is resolved, fetched and marked as the others are; an
+//! image among them previews as any image does, and any other file opens
+//! on a plain click in the app macOS opens its type with.
 
 use crate::quad::{QuadTrait, TripleLayerQuadAllocator, TripleLayerQuadAllocatorTrait};
 use crate::termwindow::render::paint::AllowImage;
@@ -127,6 +134,9 @@ pub enum ReferenceKind {
     /// A passage to edit (`.edit.md`): no preview, opened in Loupe's
     /// editor on a click.
     Edit,
+    /// A file a session sent (`[file]<path>`) that is neither of the
+    /// above: no preview, opened in its default app on a click.
+    Sent,
 }
 
 /// True if `s` ends in `.ext` with at least one char before the dot, in
@@ -463,6 +473,208 @@ fn join_rows(rows: &[RowCells], first: usize, last: usize) -> (Vec<char>, Vec<(u
     (chars, positions)
 }
 
+/// What Claude Code prints before the path of a file a session sent.
+const SENT_MARKER: &str = "[file]";
+/// Most rows the line of a sent file is read across.
+const MAX_SENT_ROWS: usize = 6;
+
+/// One reading of the path on a sent file's line: its chars and, for each,
+/// its (row index into the rows read, column).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SentPath {
+    pub chars: Vec<char>,
+    pub positions: Vec<(usize, usize)>,
+}
+
+impl SentPath {
+    pub fn text(&self) -> String {
+        self.chars.iter().collect()
+    }
+
+    /// The reading as a reference with one spelling. Its kind is read from
+    /// the end of its name when that makes it an image or a file to edit,
+    /// so those behave as they do anywhere; any other name is a sent file.
+    pub fn reference(&self) -> ImageReference {
+        let text = self.text();
+        ImageReference {
+            end: self.chars.len(),
+            is_url: false,
+            kind: reference_kind(&text).unwrap_or(ReferenceKind::Sent),
+            candidates: vec![Candidate { start: 0, text }],
+        }
+    }
+}
+
+/// The index in `row` of the marker of a sent file's line: nothing but
+/// spaces and symbols before it, and a path (`/` or `~`) right after it,
+/// so a sentence that mentions the marker is not one.
+fn sent_marker_index(row: &RowCells) -> Option<usize> {
+    let marker: Vec<char> = SENT_MARKER.chars().collect();
+    let chars = &row.chars;
+    if chars.len() <= marker.len() {
+        return None;
+    }
+    for m in 0..chars.len() - marker.len() {
+        if chars[m].is_alphanumeric() {
+            return None;
+        }
+        if chars[m..m + marker.len()] == marker[..] {
+            return match chars[m + marker.len()] {
+                '/' | '~' => Some(m),
+                _ => None,
+            };
+        }
+    }
+    None
+}
+
+/// True if `tail`, the chars after an opening parenthesis, reads as a size
+/// or the start of one cut by a wrap: `775 bytes)`, `306.3 KB)`, `775`.
+fn is_size_start(tail: &[char]) -> bool {
+    if !tail.first().map(|c| c.is_ascii_digit()).unwrap_or(false) {
+        return false;
+    }
+    let mut i = 0;
+    while i < tail.len() && (tail[i].is_ascii_digit() || tail[i] == '.' || tail[i] == ',') {
+        i += 1;
+    }
+    if i < tail.len() && tail[i] == ' ' {
+        i += 1;
+    }
+    while i < tail.len() && tail[i].is_ascii_alphabetic() {
+        i += 1;
+    }
+    if i < tail.len() && tail[i] == ')' {
+        i += 1;
+    }
+    i == tail.len()
+}
+
+/// Finds the files a session sent, each printed by Claude Code as
+/// `[file]<path> (<size>)`. The path and the size are two columns: in a
+/// pane too narrow for the line the path wraps inside its own column, cut
+/// anywhere, and the size inside its own to the right of it,
+///
+/// ```text
+///   › [file]/tmp/claude-1000/scratchpa (775
+///           d/sent.html                bytes)
+/// ```
+///
+/// so joining the rows as text would read the size into the path. The size
+/// column starts at the last ` (` of the first row that opens a size; the
+/// path is what lies between the marker and that column, on the first row
+/// and on each row below it while the path fills its column.
+///
+/// Whether a path that ends at the edge of its column goes on below cannot
+/// be told from the text, so each line gives every reading, the longest
+/// first; the first that names a file is the path.
+pub fn find_sent_files(rows: &[RowCells]) -> Vec<Vec<SentPath>> {
+    let mut found = vec![];
+    for r in 0..rows.len() {
+        let row = &rows[r];
+        let start = match sent_marker_index(row) {
+            Some(m) => m + SENT_MARKER.chars().count(),
+            None => continue,
+        };
+        let mut end = row.chars.len();
+        while end > start && row.chars[end - 1].is_whitespace() {
+            end -= 1;
+        }
+        let path_col = row.cols[start];
+
+        // The space before the size, if the row has one.
+        let mut split = None;
+        let mut i = end;
+        while i > start + 2 {
+            i -= 1;
+            if row.chars[i] == '(' && row.chars[i - 1] == ' ' && is_size_start(&row.chars[i + 1..end]) {
+                split = Some(i - 1);
+                break;
+            }
+        }
+        let (mut path_end, size_col, mut size_closed) = match split {
+            Some(space) => (space, Some(row.cols[space]), row.chars[end - 1] == ')'),
+            None => (end, None, true),
+        };
+        while path_end > start && row.chars[path_end - 1].is_whitespace() {
+            path_end -= 1;
+        }
+        if path_end == start {
+            continue;
+        }
+        let mut path = SentPath {
+            chars: row.chars[start..path_end].to_vec(),
+            positions: (start..path_end).map(|k| (r, row.cols[k])).collect(),
+        };
+        let mut readings = vec![path.clone()];
+
+        if let Some(size_col) = size_col {
+            // A wide char may leave the last cell of the column empty.
+            let fills = |path: &SentPath| {
+                path.positions
+                    .last()
+                    .map(|&(_, col)| col + 2 >= size_col)
+                    .unwrap_or(false)
+            };
+            let mut path_open = fills(&path);
+            let mut k = r + 1;
+            while k < rows.len() && k - r < MAX_SENT_ROWS && (path_open || !size_closed) {
+                let next = &rows[k];
+                if sent_marker_index(next).is_some() {
+                    break;
+                }
+                let mut margin_blank = true;
+                let mut piece: Vec<(char, usize)> = vec![];
+                let mut size_piece = String::new();
+                for (&c, &col) in next.chars.iter().zip(&next.cols) {
+                    if col < path_col {
+                        margin_blank = margin_blank && c.is_whitespace();
+                    } else if col < size_col {
+                        piece.push((c, col));
+                    } else {
+                        size_piece.push(c);
+                    }
+                }
+                if !margin_blank {
+                    break;
+                }
+                while piece.last().map(|(c, _)| c.is_whitespace()).unwrap_or(false) {
+                    piece.pop();
+                }
+                let mut took = false;
+                if !piece.is_empty() {
+                    // A wrapped path goes on in the first cell of its column.
+                    let continues = path_open && piece[0].1 == path_col && !piece[0].0.is_whitespace();
+                    if !continues {
+                        break;
+                    }
+                    for &(c, col) in &piece {
+                        path.chars.push(c);
+                        path.positions.push((k, col));
+                    }
+                    path_open = fills(&path);
+                    readings.push(path.clone());
+                    took = true;
+                } else {
+                    path_open = false;
+                }
+                let size_piece = size_piece.trim();
+                if !size_closed && !size_piece.is_empty() {
+                    size_closed = size_piece.ends_with(')');
+                    took = true;
+                }
+                if !took {
+                    break;
+                }
+                k += 1;
+            }
+        }
+        readings.reverse();
+        found.push(readings);
+    }
+    found
+}
+
 /// One row's share of a marked reference: columns `start_col..end_col` of
 /// `row` (an index into the rows given to `reference_marks`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -493,7 +705,8 @@ fn push_spans(
 /// The spans to mark on screen. Each row is read alone first, as the hover
 /// does, so a path that starts a row is not glued to the word that ends
 /// the row above; then each run of full rows is read joined, keeping only
-/// the references that cross rows. `pick` says which spelling of a
+/// the references that cross rows; then the lines of sent files, each by
+/// its longest reading that would open. `pick` says which spelling of a
 /// reference would preview, if any, by its index in `candidates`.
 pub fn reference_marks(
     rows: &[RowCells],
@@ -535,6 +748,14 @@ pub fn reference_marks(
         }
         first = last + 1;
     }
+    for readings in find_sent_files(rows) {
+        for path in readings {
+            if pick(&path.reference()).is_some() {
+                push_spans(&mut spans, &path.positions, 0, path.chars.len());
+                break;
+            }
+        }
+    }
     // A cell found twice (alone and joined) is drawn once, since the marks
     // are translucent.
     spans.sort_by_key(|span| (span.row, span.start_col));
@@ -558,9 +779,12 @@ pub fn resolve_local_path(
     cwd: Option<&Path>,
     home: Option<&Path>,
 ) -> Option<PathBuf> {
-    if reference_kind(candidate).is_none() {
-        return None;
-    }
+    reference_kind(candidate)?;
+    local_file(candidate, cwd, home)
+}
+
+/// The existing file a path spelling names, whatever its name ends in.
+fn local_file(candidate: &str, cwd: Option<&Path>, home: Option<&Path>) -> Option<PathBuf> {
     let path = if let Some(rest) = candidate.strip_prefix("~/") {
         home?.join(rest)
     } else if candidate.starts_with('/') {
@@ -700,17 +924,27 @@ pub fn tmux_cd_command(remote: &[String]) -> Option<String> {
 /// names to its output, or fails: `~/` against the remote home, a relative
 /// path after `cd` (none: a relative path cannot be resolved).
 pub fn remote_read_command(path: &str, cd: Option<&str>) -> Option<String> {
-    if reference_kind(path).is_none() {
-        return None;
-    }
-    let read = |target: String| format!("f={target} && test -f \"$f\" && exec cat -- \"$f\"");
+    reference_kind(path)?;
+    remote_cat_command(path, cd)
+}
+
+/// The remote shell command that succeeds when a path names a file, and
+/// sets `f` to it: the start of every command that reads one.
+pub fn remote_test_command(path: &str, cd: Option<&str>) -> Option<String> {
+    let test = |target: String| format!("f={target} && test -f \"$f\"");
     if let Some(rest) = path.strip_prefix("~/") {
-        Some(read(format!("\"$HOME\"/{}", sh_quote(rest))))
+        Some(test(format!("\"$HOME\"/{}", sh_quote(rest))))
     } else if path.starts_with('/') {
-        Some(read(sh_quote(path)))
+        Some(test(sh_quote(path)))
     } else {
-        Some(format!("{} && {}", cd?, read(sh_quote(path))))
+        Some(format!("{} && {}", cd?, test(sh_quote(path))))
     }
+}
+
+/// The remote shell command that writes the file a path names to its
+/// output, or fails, whatever its name ends in.
+fn remote_cat_command(path: &str, cd: Option<&str>) -> Option<String> {
+    remote_test_command(path, cd).map(|test| format!("{test} && exec cat -- \"$f\""))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -725,18 +959,36 @@ pub enum ImageSource {
         command: String,
         path: String,
     },
+    /// A file a session sent, on this machine, whose name makes it neither
+    /// an image nor a file to edit.
+    SentFile(PathBuf),
+    /// Such a file on a host reached over ssh: as `Remote`, with the remote
+    /// shell command that only finds whether the file is there, so that
+    /// marking it reads none of it.
+    SentRemote {
+        ssh: Vec<String>,
+        check: String,
+        command: String,
+        path: String,
+    },
 }
 
 impl ImageSource {
-    /// What the source names, read from the end of its name as the finder
-    /// read it.
+    /// What the source names: a sent file by how it was found, anything
+    /// else from the end of its name as the finder read it.
     pub fn kind(&self) -> ReferenceKind {
         let name = match self {
             ImageSource::File(path) => path.to_string_lossy(),
             ImageSource::Url(_) => return ReferenceKind::Image,
             ImageSource::Remote { path, .. } => path.as_str().into(),
+            ImageSource::SentFile(_) | ImageSource::SentRemote { .. } => return ReferenceKind::Sent,
         };
         reference_kind(&name).unwrap_or(ReferenceKind::Image)
+    }
+
+    /// Whether the file is on a host reached over ssh.
+    pub fn is_remote(&self) -> bool {
+        matches!(self, ImageSource::Remote { .. } | ImageSource::SentRemote { .. })
     }
 }
 
@@ -935,21 +1187,27 @@ fn fetch_remote(ssh: &[String], command: &str) -> anyhow::Result<Vec<u8>> {
 }
 
 /// Reads a source on a worker thread: an image is decoded for its preview;
-/// a file to edit is only found to exist (a remote one is fetched, so the
-/// mark appears only when the far host has it).
+/// a file to edit or a sent file is only found to exist (a remote file to
+/// edit is fetched and a remote sent file only tested for, so the mark
+/// appears only when the far host has it).
 fn load_source(source: &ImageSource) -> anyhow::Result<LoadState> {
-    if source.kind() == ReferenceKind::Edit {
+    if source.kind() != ReferenceKind::Image {
         match source {
-            ImageSource::File(path) => anyhow::ensure!(path.is_file(), "{} is gone", path.display()),
-            ImageSource::Url(url) => anyhow::bail!("{url} is not a file to edit"),
+            ImageSource::File(path) | ImageSource::SentFile(path) => {
+                anyhow::ensure!(path.is_file(), "{} is gone", path.display())
+            }
+            ImageSource::Url(url) => anyhow::bail!("{url} is not a file"),
             ImageSource::Remote { ssh, command, .. } => {
                 fetch_remote(ssh, command)?;
+            }
+            ImageSource::SentRemote { ssh, check, .. } => {
+                fetch_remote(ssh, check)?;
             }
         }
         return Ok(LoadState::Found);
     }
     let bytes = match source {
-        ImageSource::File(path) => {
+        ImageSource::File(path) | ImageSource::SentFile(path) => {
             let len = std::fs::metadata(path)?.len();
             anyhow::ensure!(
                 len as usize <= MAX_SOURCE_BYTES,
@@ -959,7 +1217,9 @@ fn load_source(source: &ImageSource) -> anyhow::Result<LoadState> {
             std::fs::read(path)?
         }
         ImageSource::Url(url) => fetch_url(url)?,
-        ImageSource::Remote { ssh, command, .. } => fetch_remote(ssh, command)?,
+        ImageSource::Remote { ssh, command, .. } | ImageSource::SentRemote { ssh, command, .. } => {
+            fetch_remote(ssh, command)?
+        }
     };
     let (data, width, height) = decode_for_preview(&bytes)?;
     Ok(LoadState::Ready(data, width, height))
@@ -1067,8 +1327,8 @@ fn pane_files(pane: &Arc<dyn Pane>) -> PaneFiles {
 }
 
 /// Where a remote file is saved to be opened on this machine: under the
-/// cache's `Topaz/previews` for an image and `Topaz/edits` for a file to
-/// edit, in a folder per source so two files of one name do not collide,
+/// cache's `Topaz/previews` for an image, `Topaz/edits` for a file to
+/// edit and `Topaz/sent` for a sent file, in a folder per source so two files of one name do not collide,
 /// and under the file's own name, so the viewer's title reads as usual.
 fn remote_copy_path(cache: &Path, source: &ImageSource, path: &str) -> PathBuf {
     use std::hash::{Hash, Hasher};
@@ -1077,6 +1337,7 @@ fn remote_copy_path(cache: &Path, source: &ImageSource, path: &str) -> PathBuf {
     let (folder, fallback) = match source.kind() {
         ReferenceKind::Image => ("previews", "image.png"),
         ReferenceKind::Edit => ("edits", "passage.edit.md"),
+        ReferenceKind::Sent => ("sent", "file"),
     };
     let name = Path::new(path)
         .file_name()
@@ -1093,7 +1354,8 @@ fn remote_copy_path(cache: &Path, source: &ImageSource, path: &str) -> PathBuf {
 /// beside it first and then renamed into place, and returns the copy.
 fn save_remote_copy(source: &ImageSource) -> anyhow::Result<PathBuf> {
     let (ssh, command, path) = match source {
-        ImageSource::Remote { ssh, command, path } => (ssh, command, path),
+        ImageSource::Remote { ssh, command, path }
+        | ImageSource::SentRemote { ssh, command, path, .. } => (ssh, command, path),
         _ => anyhow::bail!("{source:?} is not a file on the far host"),
     };
     let cache = dirs_next::cache_dir().context("no cache folder")?;
@@ -1230,10 +1492,15 @@ fn open_in_editor(
     Ok(())
 }
 
+/// Opens a file in the app macOS (or the desktop) opens its type with.
+fn open_in_default_app(path: &Path) {
+    wezterm_open_url::open_url(&path.to_string_lossy());
+}
+
 /// Opens what a reference names: an image file here in the viewer, a URL
-/// in the browser, a file to edit in Loupe's editor. A file on the far
-/// host is fetched afresh to the cache first, on a thread, and the copy
-/// opened.
+/// in the browser, a file to edit in Loupe's editor, a sent file in its
+/// default app. A file on the far host is fetched afresh to the cache
+/// first, on a thread, and the copy opened.
 fn open_reference(hover: ImageHover) {
     let ImageHover {
         pane_id,
@@ -1243,7 +1510,7 @@ fn open_reference(hover: ImageHover) {
     } = hover;
     let kind = source.kind();
     let loupe = match kind {
-        ReferenceKind::Image => None,
+        ReferenceKind::Image | ReferenceKind::Sent => None,
         ReferenceKind::Edit => {
             if !cfg!(target_os = "macos") {
                 log::error!("image preview: cannot edit {shown}: the editor is macOS only");
@@ -1258,10 +1525,11 @@ fn open_reference(hover: ImageHover) {
             }
         }
     };
-    let remote = matches!(source, ImageSource::Remote { .. });
+    let remote = source.is_remote();
     match source {
         ImageSource::Url(url) => wezterm_open_url::open_url(&url),
         ImageSource::File(path) if kind == ReferenceKind::Image => open_in_viewer(&path),
+        ImageSource::SentFile(path) => open_in_default_app(&path),
         source => {
             let spawned = std::thread::Builder::new()
                 .name("image-preview-open".to_string())
@@ -1273,6 +1541,7 @@ fn open_reference(hover: ImageHover) {
                         };
                         match &loupe {
                             Some(loupe) => open_in_editor(loupe, pane_id, &local, &shown, remote)?,
+                            None if kind == ReferenceKind::Sent => open_in_default_app(&local),
                             None => open_in_viewer(&local),
                         }
                         Ok(())
@@ -1321,21 +1590,23 @@ impl crate::TermWindow {
         }
     }
 
-    /// Whether the pointer rests on a reference that previews or a file to
-    /// edit that exists, so it shows as a hand.
+    /// Whether the pointer rests on a reference that previews, or a file to
+    /// edit or a sent file that exists, so it shows as a hand.
     pub fn image_preview_wants_pointer(&self) -> bool {
         let hover = match &self.image_preview.hover {
             Some(hover) => hover,
             None => return false,
         };
-        // A file here to edit was found when the hover began, and is
-        // never loaded.
-        if matches!(hover.source, ImageSource::File(_)) && hover.source.kind() == ReferenceKind::Edit {
+        // A file here to edit, or a sent file here, was found when the
+        // hover began, and is never loaded.
+        if matches!(hover.source, ImageSource::SentFile(_))
+            || (matches!(hover.source, ImageSource::File(_)) && hover.source.kind() == ReferenceKind::Edit)
+        {
             return true;
         }
         match self.image_preview.loads.get(&hover.source).map(|e| &e.state) {
             Some(LoadState::Ready(..)) | Some(LoadState::Found) => true,
-            Some(LoadState::Loading) => !matches!(hover.source, ImageSource::Remote { .. }),
+            Some(LoadState::Loading) => !hover.source.is_remote(),
             _ => false,
         }
     }
@@ -1384,28 +1655,53 @@ impl crate::TermWindow {
     }
 
     /// Whether a spelling of a path would preview, or names a file to edit
-    /// that exists, in a pane whose paths name `files`; starts the fetch of
-    /// a remote file not yet tried.
-    fn resolve_path(&mut self, files: &PaneFiles, text: &str) -> Found {
+    /// or a sent file that exists, in a pane whose paths name `files`;
+    /// starts the fetch of a remote file not yet tried. `kind` is what the
+    /// finder took the spelling for: a sent file may have any name.
+    fn resolve_path(&mut self, files: &PaneFiles, text: &str, kind: ReferenceKind) -> Found {
+        let sent = kind == ReferenceKind::Sent;
         match files {
             PaneFiles::Local { cwd, home } => {
-                match resolve_local_path(text, cwd.as_deref(), home.as_deref()) {
+                let path = if sent {
+                    local_file(text, cwd.as_deref(), home.as_deref())
+                } else {
+                    resolve_local_path(text, cwd.as_deref(), home.as_deref())
+                };
+                match path {
                     Some(path) => {
                         let modified = file_modified(&path);
-                        Found::Ready(ImageSource::File(path), modified)
+                        let source = if sent {
+                            ImageSource::SentFile(path)
+                        } else {
+                            ImageSource::File(path)
+                        };
+                        Found::Ready(source, modified)
                     }
                     None => Found::Unavailable,
                 }
             }
             PaneFiles::Ssh { ssh, cd } => {
-                let command = match remote_read_command(text, cd.as_deref()) {
-                    Some(command) => command,
-                    None => return Found::Unavailable,
-                };
-                let source = ImageSource::Remote {
-                    ssh: ssh.clone(),
-                    command,
-                    path: text.to_string(),
+                let source = if sent {
+                    let check = remote_test_command(text, cd.as_deref());
+                    let command = remote_cat_command(text, cd.as_deref());
+                    match (check, command) {
+                        (Some(check), Some(command)) => ImageSource::SentRemote {
+                            ssh: ssh.clone(),
+                            check,
+                            command,
+                            path: text.to_string(),
+                        },
+                        _ => return Found::Unavailable,
+                    }
+                } else {
+                    match remote_read_command(text, cd.as_deref()) {
+                        Some(command) => ImageSource::Remote {
+                            ssh: ssh.clone(),
+                            command,
+                            path: text.to_string(),
+                        },
+                        None => return Found::Unavailable,
+                    }
                 };
                 let retry = match self.image_preview.loads.get(&source) {
                     None => true,
@@ -1422,8 +1718,7 @@ impl crate::TermWindow {
                     .loads
                     .iter()
                     .filter(|(source, entry)| {
-                        matches!(source, ImageSource::Remote { .. })
-                            && matches!(entry.state, LoadState::Loading)
+                        source.is_remote() && matches!(entry.state, LoadState::Loading)
                     })
                     .count();
                 if retry && in_flight < MAX_REMOTE_FETCHES {
@@ -1469,20 +1764,31 @@ impl crate::TermWindow {
         let mut pending: Option<ImageHover> = None;
 
         // The hovered row alone first, so a path that starts a row is not
-        // glued to the word that ends the row above; then the joined rows.
+        // glued to the word that ends the row above; then the joined rows;
+        // then the lines of sent files, each reading of one in turn.
         let single = join_rows(&rows, hovered, hovered);
         let joined = join_wrapped_rows(&rows, hovered, dims.cols);
-
-        for (chars, positions) in [single, joined] {
-            let hover_idx = match positions
+        let under_pointer = |positions: &[(usize, usize)]| {
+            positions
                 .iter()
                 .position(|&(r, col)| r == hovered && col == column)
-            {
-                Some(idx) => idx,
-                None => continue,
-            };
-            let text: String = chars.iter().collect();
-            for reference in find_image_references(&text) {
+        };
+        let mut runs: Vec<(usize, Vec<(usize, usize)>, Vec<ImageReference>)> = vec![];
+        for (chars, positions) in [single, joined] {
+            if let Some(idx) = under_pointer(&positions) {
+                let text: String = chars.iter().collect();
+                runs.push((idx, positions, find_image_references(&text)));
+            }
+        }
+        for path in find_sent_files(&rows).into_iter().flatten() {
+            if let Some(idx) = under_pointer(&path.positions) {
+                let reference = path.reference();
+                runs.push((idx, path.positions, vec![reference]));
+            }
+        }
+
+        for (hover_idx, positions, references) in runs {
+            for reference in references {
                 for candidate in &reference.candidates {
                     if !(candidate.start <= hover_idx && hover_idx < reference.end) {
                         continue;
@@ -1491,7 +1797,7 @@ impl crate::TermWindow {
                         Found::Ready(ImageSource::Url(candidate.text.clone()), None)
                     } else {
                         let files = files.get_or_insert_with(|| pane_files(&pane));
-                        self.resolve_path(files, &candidate.text)
+                        self.resolve_path(files, &candidate.text, reference.kind)
                     };
                     let (first_r, start_col) = positions[candidate.start];
                     let (last_r, _) = positions[reference.end - 1];
@@ -1509,8 +1815,9 @@ impl crate::TermWindow {
                     };
                     match found {
                         Found::Ready(source, modified) => {
-                            // A file here to edit has nothing to load.
-                            if !matches!(source, ImageSource::Remote { .. })
+                            // A file here to edit, or a sent file here,
+                            // has nothing to load.
+                            if !source.is_remote()
                                 && source.kind() == ReferenceKind::Image
                             {
                                 self.ensure_image_loading(&source, modified);
@@ -1660,7 +1967,7 @@ impl crate::TermWindow {
             let files = files.get_or_insert_with(|| pane_files(pane));
             let mut picked = None;
             for (i, candidate) in reference.candidates.iter().enumerate() {
-                if let Found::Ready(..) = self.resolve_path(files, &candidate.text) {
+                if let Found::Ready(..) = self.resolve_path(files, &candidate.text, reference.kind) {
                     picked = Some(i);
                     break;
                 }
@@ -2218,6 +2525,229 @@ mod test {
             ]
         );
         assert!(reference_marks(&rows, width, |_| None).is_empty());
+    }
+
+    fn sent(rows: &[&str]) -> Vec<Vec<String>> {
+        let rows: Vec<RowCells> = rows.iter().map(|r| RowCells::from_str(r)).collect();
+        find_sent_files(&rows)
+            .into_iter()
+            .map(|readings| readings.iter().map(SentPath::text).collect())
+            .collect()
+    }
+
+    #[test]
+    fn a_sent_file_is_read_whatever_its_name_ends_in() {
+        assert_eq!(
+            sent(&["  \u{203a} [file]/home/b/site/week-02-lab.pdf (306.3 KB)"]),
+            vec![vec!["/home/b/site/week-02-lab.pdf".to_string()]]
+        );
+        assert_eq!(
+            sent(&["[file]~/out/data.csv (775 bytes)", "", "  [file]/x/Makefile (12 bytes)"]),
+            vec![vec!["~/out/data.csv".to_string()], vec!["/x/Makefile".to_string()]]
+        );
+        // Spaces and parentheses in the name stay in the path; only the
+        // last parenthesis that reads as a size is the size.
+        assert_eq!(
+            sent(&["  [file]/x/My Report (final) (2).docx (1.2 MB)"]),
+            vec![vec!["/x/My Report (final) (2).docx".to_string()]]
+        );
+        // No size printed: the rest of the row is the path.
+        assert_eq!(sent(&["  [file]/x/a b.txt  "]), vec![vec!["/x/a b.txt".to_string()]]);
+
+        let rows = vec![RowCells::from_str("  \u{203a} [file]/x/y.pdf (9 bytes)")];
+        let found = find_sent_files(&rows);
+        assert_eq!(found[0][0].positions.first(), Some(&(0, 10)));
+        assert_eq!(found[0][0].positions.last(), Some(&(0, 17)));
+        let reference = found[0][0].reference();
+        assert_eq!(reference.kind, ReferenceKind::Sent);
+        assert_eq!(reference.end, 8);
+        assert_eq!(reference.candidates, vec![Candidate { start: 0, text: "/x/y.pdf".to_string() }]);
+        // An image or a file to edit that is sent keeps its own kind.
+        let kind = |row: &str| find_sent_files(&[RowCells::from_str(row)])[0][0].reference().kind;
+        assert_eq!(kind("[file]/x/fig.PNG (9 KB)"), ReferenceKind::Image);
+        assert_eq!(kind("[file]/x/p.edit.md (9 KB)"), ReferenceKind::Edit);
+    }
+
+    #[test]
+    fn a_mention_of_the_marker_is_not_a_sent_file() {
+        assert!(sent(&["  follows the [file] marker as a reference of any type"]).is_empty());
+        assert!(sent(&["see [file]/tmp/x.pdf (9 bytes)"]).is_empty());
+        assert!(sent(&["  [file] /tmp/x.pdf (9 bytes)"]).is_empty());
+        assert!(sent(&["  [file]relative.pdf (9 bytes)"]).is_empty());
+        assert!(sent(&["  [file]", "[file", ""]).is_empty());
+    }
+
+    #[test]
+    fn a_wrapped_sent_file_keeps_the_size_out_of_the_path() {
+        // As Claude Code 2.1 drew it in a 114 column pane on 2026-11-20,
+        // narrowed: the path wraps inside its column, cut inside a word,
+        // and the size inside the column to its right.
+        let rows = [
+            "\u{25cf} Probe: the same page again",
+            "",
+            "  \u{203a} [file]/tmp/claude/scratchpa (775",
+            "          d/loupe-sent.html     bytes)",
+            "",
+            "\u{25cf} One fact first",
+        ];
+        assert_eq!(
+            sent(&rows),
+            vec![vec![
+                "/tmp/claude/scratchpad/loupe-sent.html".to_string(),
+                "/tmp/claude/scratchpa".to_string(),
+            ]]
+        );
+        let cells: Vec<RowCells> = rows.iter().map(|r| RowCells::from_str(r)).collect();
+        let whole = &find_sent_files(&cells)[0][0];
+        assert_eq!(whole.positions.first(), Some(&(2, 10)));
+        assert_eq!(whole.positions[20], (2, 30));
+        assert_eq!(whole.positions[21], (3, 10));
+        assert_eq!(whole.positions.last(), Some(&(3, 26)));
+
+        // Three rows of path, the size closed on the second.
+        assert_eq!(
+            sent(&[
+                "  [file]/aaaaaaaa (775",
+                "        bbbbbbbbb bytes)",
+                "        cc.pdf",
+                "  next line of the reply",
+            ])[0][0],
+            "/aaaaaaaabbbbbbbbbcc.pdf"
+        );
+        // The size on one row beside a path that wraps.
+        assert_eq!(
+            sent(&["  [file]/aaaaaaaa (775 bytes)", "        bb.pdf"])[0],
+            vec!["/aaaaaaaabb.pdf".to_string(), "/aaaaaaaa".to_string()]
+        );
+        // A path that does not fill its column does not go on below, and
+        // text below that is not in its column is not part of it.
+        assert_eq!(
+            sent(&["  [file]/a.pdf     (775", "        more text  bytes)"])[0],
+            vec!["/a.pdf".to_string()]
+        );
+        assert_eq!(
+            sent(&["  [file]/aaaaaaaa (775 bytes)", "  the reply goes on here"])[0],
+            vec!["/aaaaaaaa".to_string()]
+        );
+        assert_eq!(
+            sent(&["  [file]/aaaaaaaa (775 bytes)", "          indented.pdf"])[0],
+            vec!["/aaaaaaaa".to_string()]
+        );
+        // The next sent file is its own line.
+        assert_eq!(
+            sent(&["  [file]/aaaaaaaa (775 bytes)", "  [file]/b.pdf (9 bytes)"]),
+            vec![vec!["/aaaaaaaa".to_string()], vec!["/b.pdf".to_string()]]
+        );
+    }
+
+    #[test]
+    fn sizes_are_told_from_names() {
+        let size = |s: &str| is_size_start(&s.chars().collect::<Vec<char>>());
+        for yes in ["775 bytes)", "306.3 KB)", "1,024 KB)", "775", "1.2", "12 M", "9B)"] {
+            assert!(size(yes), "{yes}");
+        }
+        for no in ["", "final)", "2).docx", "1) and more", "v2 draft)", "775 bytes) x"] {
+            assert!(!size(no), "{no}");
+        }
+    }
+
+    #[test]
+    fn sent_files_are_marked_by_the_reading_that_opens() {
+        let rows: Vec<RowCells> = [
+            "  [file]/aaaaaaaa (775",
+            "        bb.pdf    bytes)",
+            "see /tmp/a.png",
+        ]
+        .iter()
+        .map(|r| RowCells::from_str(r))
+        .collect();
+        // The whole path exists: both rows of it are marked, the size not.
+        let spans = reference_marks(&rows, 40, |r| {
+            (r.candidates[0].text == "/aaaaaaaabb.pdf" || r.kind == ReferenceKind::Image).then(|| 0)
+        });
+        assert_eq!(
+            spans,
+            vec![
+                MarkSpan { row: 0, start_col: 8, end_col: 17 },
+                MarkSpan { row: 1, start_col: 8, end_col: 14 },
+                MarkSpan { row: 2, start_col: 4, end_col: 14 },
+            ]
+        );
+        // Only the first row's reading exists: only it is marked.
+        let spans = reference_marks(&rows, 40, |r| (r.candidates[0].text == "/aaaaaaaa").then(|| 0));
+        assert_eq!(spans, vec![MarkSpan { row: 0, start_col: 8, end_col: 17 }]);
+        // Neither exists: no mark.
+        assert!(reference_marks(&rows, 40, |r| (r.kind != ReferenceKind::Sent).then(|| 0))
+            .iter()
+            .all(|span| span.row == 2));
+    }
+
+    #[test]
+    fn sent_files_resolve_and_open_by_how_they_were_found() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("week 2 (lab).pdf");
+        std::fs::write(&file, b"x").unwrap();
+        // The finder's own check refuses a name that is not a reference;
+        // a sent file is found whatever its name.
+        assert_eq!(resolve_local_path("week 2 (lab).pdf", Some(dir.path()), None), None);
+        assert_eq!(local_file("week 2 (lab).pdf", Some(dir.path()), None), Some(file.clone()));
+        assert_eq!(local_file("~/week 2 (lab).pdf", None, Some(dir.path())), Some(file.clone()));
+        assert_eq!(local_file("missing.pdf", Some(dir.path()), None), None);
+        assert_eq!(local_file(&dir.path().to_string_lossy(), None, None), None, "a folder is not a file");
+
+        assert_eq!(ImageSource::SentFile(file.clone()).kind(), ReferenceKind::Sent);
+        assert_eq!(ImageSource::SentFile(PathBuf::from("/x/a.png")).kind(), ReferenceKind::Sent);
+        assert!(!ImageSource::SentFile(file.clone()).is_remote());
+        assert!(matches!(load_source(&ImageSource::SentFile(file)), Ok(LoadState::Found)));
+        assert!(load_source(&ImageSource::SentFile(dir.path().join("gone.pdf"))).is_err());
+
+        let remote = ImageSource::SentRemote {
+            ssh: strings(&["ssh", "imac"]),
+            check: remote_test_command("/x/it's.pdf", None).unwrap(),
+            command: remote_cat_command("/x/it's.pdf", None).unwrap(),
+            path: "/x/it's.pdf".to_string(),
+        };
+        assert_eq!(remote.kind(), ReferenceKind::Sent);
+        assert!(remote.is_remote());
+        let copy = remote_copy_path(Path::new("/c"), &remote, "/x/it's.pdf");
+        assert!(copy.starts_with("/c/Topaz/sent"));
+        assert_eq!(copy.file_name().unwrap(), "it's.pdf", "the copy keeps its name, so its type");
+    }
+
+    #[test]
+    fn a_remote_sent_file_is_tested_for_without_reading_it() {
+        assert_eq!(
+            remote_test_command("/tmp/it's.pdf", None).unwrap(),
+            "f='/tmp/it'\\''s.pdf' && test -f \"$f\""
+        );
+        assert_eq!(
+            remote_test_command("~/a b.docx", None).unwrap(),
+            "f=\"$HOME\"/'a b.docx' && test -f \"$f\""
+        );
+        assert_eq!(remote_test_command("out/x.csv", None), None);
+        assert_eq!(
+            remote_cat_command("out/x.csv", Some("cd /w")).unwrap(),
+            "cd /w && f='out/x.csv' && test -f \"$f\" && exec cat -- \"$f\""
+        );
+
+        let dir = tempfile::tempdir().unwrap();
+        let name = "it's a (draft).docx";
+        std::fs::write(dir.path().join(name), b"bytes").unwrap();
+        let path = dir.path().join(name).to_string_lossy().into_owned();
+        let run = |command: String| {
+            std::process::Command::new("sh")
+                .arg("-c")
+                .arg(command)
+                .output()
+                .unwrap()
+        };
+        let out = run(remote_test_command(&path, None).unwrap());
+        assert!(out.status.success());
+        assert!(out.stdout.is_empty(), "the test writes nothing");
+        assert_eq!(run(remote_cat_command(&path, None).unwrap()).stdout, b"bytes");
+        assert!(!run(remote_test_command("/nonexistent/x.docx", None).unwrap()).status.success());
+        let folder = dir.path().to_string_lossy().into_owned();
+        assert!(!run(remote_test_command(&folder, None).unwrap()).status.success());
     }
 
     #[test]
