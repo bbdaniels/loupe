@@ -43,8 +43,6 @@ The CLI handles auth, tool execution, and MCP connections. Loupe provides the UI
 
 **Terminal integration** -- Sessions open as tabs in one WezTerm window (`/Applications/WezTerm.app`). Clicking a session focuses the tab it is already in, or opens one: an iMac session's tab is titled with its tmux session name (`rc-<name>`), a Mac session's `<project> (Mac)`. Loupe drives WezTerm through `wezterm cli` and brings it forward through NSWorkspace, so it needs no Apple Events permission. Closing a tab only detaches; the session runs on until it is stopped from Loupe.
 
-**Files a session sends** -- When a running session sends a file with Claude Code's SendUserFile tool, a card appears under the panel's header with the session's name, the caption and the file names. Loupe reads the calls from the transcripts of the running sessions on both machines (the MacBook's from disk, the iMac's over ssh), never from terminal text, and lists no file types: a click on a file copies it from the session's machine when that is the iMac and opens it in its default macOS app. The newest three cards show, the rest open from the line under them, and the × puts a card away. `Loupe --file-deliveries <transcript.jsonl>` prints the calls a transcript holds; `Loupe --fetch-file-delivery <call id>` brings a card's files here without opening them.
-
 **Obsidian notes** -- Browse and preview your Obsidian vault directly in the app. Click the archive box icon in the tab bar to access:
 - Multi-vault support with persistent vault selection
 - Recursive folder browsing with collapsible tree
@@ -160,7 +158,6 @@ Loupe/
     HUDPanel/
       HUDPanelController.swift  # NSPanel floating window
       HUDContentView.swift      # Main layout, tabs, history, info
-      FileDeliveriesView.swift  # Cards for the files sessions send
     Shared/
       MarkdownBlocks.swift # Markdown block renderers + LaTeX/KaTeX
     Obsidian/
@@ -186,8 +183,6 @@ Loupe/
     PushNotificationManager.swift  # Hook install, settings.json management
     SubstackService.swift          # Substack API client, cookie auth, caching
     SessionHistoryService.swift    # Scan ~/.claude/projects/ for past sessions
-    FileDelivery.swift             # SendUserFile calls: transcript reader, follower, log, copy
-    FileDeliveryService.swift      # Polls the running sessions' transcripts; opens a file
     TerminalService.swift          # Terminal app detection, selection, command launch
     PermissionWatcherService.swift # Monitor pending permission requests
     SecretsVault.swift             # Secrets cache, one Keychain item

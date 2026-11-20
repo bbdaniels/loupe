@@ -16,7 +16,6 @@ class AppState: ObservableObject {
     let vaultIngestService = VaultIngestService()
     let vaultProjectService = VaultProjectService()
     let remoteControlServer = RemoteControlServerService()
-    let fileDeliveryService = FileDeliveryService()
     let screenCoverService: ScreenCoverService
 
     init() {
@@ -48,10 +47,6 @@ class AppState: ObservableObject {
         sessionHistoryService.liveSessionIds = { [weak agentsService] in
             Set(agentsService?.agents.filter(\.isAlive).compactMap(\.sessionId) ?? [])
         }
-
-        // The files the running sessions send with SendUserFile, read from
-        // their transcripts on both machines and shown as cards.
-        fileDeliveryService.start(agents: agentsService, history: sessionHistoryService)
 
         // Remote Control server: observe the launchd agent, and keep its
         // permission mode in step with the global one (info popover). Never

@@ -249,9 +249,6 @@ struct HUDContentView: View {
             Divider()
                 .opacity(0.5)
 
-            // The files sessions have sent (SendUserFile), on every tab.
-            FileDeliveriesSection(service: appState.fileDeliveryService)
-
             // Main content
             switch activeFixedTab {
             case .history:

@@ -230,7 +230,6 @@ final class AgentsService: ObservableObject {
                 worktreePath: worktreePath,
                 sessionId: (s["sessionId"] as? String)
                     ?? transcriptPath.map { URL(fileURLWithPath: $0).deletingPathExtension().lastPathComponent },
-                transcriptPath: transcriptPath,
                 inShell: cli?.status == "shell"
             ))
         }
@@ -273,7 +272,6 @@ final class AgentsService: ObservableObject {
                 worktreePath: nil,
                 sessionId: r.sessionId,
                 remoteControlURL: r.remoteControlURL,
-                transcriptPath: transcript,
                 inShell: r.status == "shell"
             ))
         }
@@ -295,11 +293,11 @@ final class AgentsService: ObservableObject {
                 let project = cwd.isEmpty ? "" : URL(fileURLWithPath: cwd).lastPathComponent
                 let tmuxSession = r.tmuxSession
                 let attach = tmuxSession.flatMap { attaches[Self.gateAttachKey(host, $0)] }
-                let transcript = host == .mac
-                    ? ClaudeSessionRecords.transcriptPath(sessionId: r.sessionId, cwd: r.cwd) : nil
-                let transcriptMtime = transcript.flatMap {
-                    (try? fm.attributesOfItem(atPath: $0))?[.modificationDate] as? Date
-                }
+                let transcriptMtime: Date? = host == .mac
+                    ? ClaudeSessionRecords.transcriptPath(sessionId: r.sessionId, cwd: r.cwd).flatMap {
+                        (try? fm.attributesOfItem(atPath: $0))?[.modificationDate] as? Date
+                    }
+                    : nil
                 result.append(AgentSession(
                     id: host.rawValue.lowercased() + ":" + r.sessionId,
                     name: r.name ?? tmuxSession ?? "\(project) · \(host.machine)",
@@ -321,7 +319,6 @@ final class AgentsService: ObservableObject {
                     worktreePath: nil,
                     sessionId: r.sessionId,
                     gateTmux: tmuxSession,
-                    transcriptPath: transcript,
                     inShell: r.status == "shell"
                 ))
             }
