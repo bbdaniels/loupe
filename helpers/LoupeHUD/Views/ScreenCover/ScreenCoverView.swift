@@ -120,7 +120,7 @@ struct ScreenCoverView: View {
     @ViewBuilder
     private var statusLine: some View {
         if service.isAuthenticating {
-            Text("Authenticating…")
+            Text("Authenticating… Escape cancels")
                 .font(.system(size: 13))
                 .foregroundStyle(.white.opacity(0.45))
         } else if let error = service.lastError {

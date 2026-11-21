@@ -169,6 +169,7 @@ final class ScreenCoverService: ObservableObject {
     private var eventTap: CFMachPort?
     private var tapThread: Thread?
     private var localMonitor: Any?
+    private var panicMonitor: Any?
     private var wantsInputBlocking = false
 
     private var activityTimer: Timer?
@@ -177,6 +178,7 @@ final class ScreenCoverService: ObservableObject {
     private var screenChangeWork: DispatchWorkItem?
     private var observers: [NSObjectProtocol] = []
     private var workspaceObservers: [NSObjectProtocol] = []
+    private var distributedObservers: [NSObjectProtocol] = []
 
     private var authInProgress = false
     private var activeContext: LAContext?
@@ -269,6 +271,7 @@ final class ScreenCoverService: ObservableObject {
         isCovered = true
         installObservers()
         installLocalInputMonitor()
+        installPanicMonitor()
         concealCursor()
 
         wantsInputBlocking = trusted
@@ -298,6 +301,7 @@ final class ScreenCoverService: ObservableObject {
         stopAccessibilityMonitoring()
         stopInputBlocking()
         removeLocalInputMonitor()
+        removePanicMonitor()
         removeObservers()
         screenChangeWork?.cancel()
         screenChangeWork = nil
@@ -334,7 +338,9 @@ final class ScreenCoverService: ObservableObject {
                 screen: screen
             )
             window.setFrame(screen.frame, display: true)
-            window.level = shieldLevel
+            // A rebuild while the authentication dialog is up must not put a
+            // new shield over it.
+            window.level = authInProgress ? .statusBar : shieldLevel
             window.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
             window.isOpaque = false
             window.backgroundColor = .clear
@@ -399,7 +405,8 @@ final class ScreenCoverService: ObservableObject {
         guard isCovered else { return }
         dismissWindows(animated: false)
         buildWindows()
-        concealCursor()
+        // Taking key status would pull the keyboard from the dialog.
+        if !authInProgress { concealCursor() }
     }
 
     private func allowSystemDialogs() {
@@ -499,12 +506,52 @@ final class ScreenCoverService: ObservableObject {
         localMonitor = NSEvent.addLocalMonitorForEvents(
             matching: [.keyDown, .leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel]
         ) { [weak self] event in
+            let isEscape = event.type == .keyDown && event.keyCode == 53
+            let isPanic = isEscape && Self.isPanicChord(event.modifierFlags)
             let consumed = MainActor.assumeIsolated { () -> Bool in
-                guard let self, self.isCovered, !self.authInProgress else { return false }
+                guard let self, self.isCovered else { return false }
+                if isPanic {
+                    logger.critical("Cover panic chord (local monitor), force uncovering")
+                    self.forceUncover()
+                    return true
+                }
+                if self.authInProgress {
+                    // Escape with no dialog in front to take it means the
+                    // dialog is lost: give the cover back its unlock path.
+                    guard isEscape else { return false }
+                    self.abandonAuthentication(message: "Cancelled. Press any key to try again")
+                    return true
+                }
                 self.handleCoverInput()
                 return true
             }
             return consumed ? nil : event
+        }
+    }
+
+    nonisolated static func isPanicChord(_ flags: NSEvent.ModifierFlags) -> Bool {
+        flags.contains(.control) && flags.contains(.option) && flags.contains(.command)
+    }
+
+    /// The tap recognises the panic chord, but the tap is stopped for the
+    /// whole of an authentication, which is when a wedge is most likely. A
+    /// global monitor sees the chord while another process (the dialog) has
+    /// the keyboard; the local monitor sees it while the cover does.
+    private func installPanicMonitor() {
+        guard panicMonitor == nil else { return }
+        panicMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard event.keyCode == 53, Self.isPanicChord(event.modifierFlags) else { return }
+            MainActor.assumeIsolated {
+                logger.critical("Cover panic chord (global monitor), force uncovering")
+                self?.forceUncover()
+            }
+        }
+    }
+
+    private func removePanicMonitor() {
+        if let panicMonitor {
+            NSEvent.removeMonitor(panicMonitor)
+            self.panicMonitor = nil
         }
     }
 
@@ -526,7 +573,7 @@ final class ScreenCoverService: ObservableObject {
     }
 
     private func cycleInputBlocking() {
-        guard isCovered, wantsInputBlocking else { return }
+        guard isCovered, wantsInputBlocking, !authInProgress else { return }
         stopInputBlocking()
         startInputBlocking()
         blockSystemDialogs()
@@ -554,6 +601,10 @@ final class ScreenCoverService: ObservableObject {
             return
         }
 
+        // Behind the macOS lock screen the dialog cannot be shown, so the
+        // request would stay pending with nothing to answer it.
+        guard !Self.screenIsLocked() else { return }
+
         let context = LAContext()
         context.localizedCancelTitle = "Cancel"
         context.localizedFallbackTitle = "Use Password…"
@@ -576,7 +627,9 @@ final class ScreenCoverService: ObservableObject {
 
         Task { [weak self] in
             let granted = await Self.evaluate(context, reason: "Uncover the LoupeHUD screen")
-            guard let self else { return }
+            // An answer for a request that was abandoned, or replaced by a
+            // newer one, must not touch the newer one's state.
+            guard let self, self.activeContext === context else { return }
             self.activeContext = nil
             guard self.isCovered, self.authInProgress else {
                 self.authInProgress = false
@@ -601,6 +654,28 @@ final class ScreenCoverService: ObservableObject {
                 return false
             }
         }.value
+    }
+
+    private nonisolated static func screenIsLocked() -> Bool {
+        guard let session = CGSessionCopyCurrentDictionary() as? [String: Any] else { return false }
+        return session["CGSSessionScreenIsLocked"] as? Bool ?? false
+    }
+
+    /// Drops a pending authentication without counting it as a failure and
+    /// puts the cover back to "press any key". Used when the dialog cannot
+    /// still be in front of the user: the screen locked, slept or woke, the
+    /// session changed, or Escape reached the cover instead of a dialog.
+    private func abandonAuthentication(message: String) {
+        guard isCovered, authInProgress else { return }
+        logger.error("Authentication abandoned: \(message, privacy: .public)")
+        activeContext?.invalidate()
+        activeContext = nil
+        authInProgress = false
+        isAuthenticating = false
+        lastError = message
+        blockSystemDialogs()
+        if wantsInputBlocking { startInputBlocking() }
+        scheduleErrorClear()
     }
 
     private func handleAuthFailure() {
@@ -681,12 +756,36 @@ final class ScreenCoverService: ObservableObject {
         workspaceObservers.append(workspace.addObserver(
             forName: NSWorkspace.screensDidWakeNotification, object: nil, queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.cycleInputBlocking() }
+            MainActor.assumeIsolated { self?.handleReturn() }
         })
         workspaceObservers.append(workspace.addObserver(
             forName: NSWorkspace.sessionDidBecomeActiveNotification, object: nil, queue: .main
         ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.cycleInputBlocking() }
+            MainActor.assumeIsolated { self?.handleReturn() }
+        })
+        // A sleeping machine runs no agents, so the cover has nothing left to
+        // protect, and kept up it declares user activity every 30 seconds,
+        // which wakes a closed MacBook again and again. The macOS lock takes
+        // over from here.
+        workspaceObservers.append(workspace.addObserver(
+            forName: NSWorkspace.willSleepNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                logger.notice("System going to sleep, uncovering")
+                self?.forceUncover()
+            }
+        })
+
+        let distributed = DistributedNotificationCenter.default()
+        distributedObservers.append(distributed.addObserver(
+            forName: Notification.Name("com.apple.screenIsLocked"), object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.handleSessionLost() }
+        })
+        distributedObservers.append(distributed.addObserver(
+            forName: Notification.Name("com.apple.screenIsUnlocked"), object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.handleReturn() }
         })
         workspaceObservers.append(workspace.addObserver(
             forName: NSWorkspace.sessionDidResignActiveNotification, object: nil, queue: .main
@@ -701,18 +800,27 @@ final class ScreenCoverService: ObservableObject {
             NSWorkspace.shared.notificationCenter.removeObserver(observer)
         }
         workspaceObservers.removeAll()
+        for observer in distributedObservers {
+            DistributedNotificationCenter.default().removeObserver(observer)
+        }
+        distributedObservers.removeAll()
     }
 
     private func handleSessionLost() {
-        guard isCovered, authInProgress else { return }
-        activeContext?.invalidate()
-        activeContext = nil
-        authInProgress = false
-        isAuthenticating = false
-        lastError = "Session interrupted — try again"
-        blockSystemDialogs()
-        if wantsInputBlocking { startInputBlocking() }
-        scheduleErrorClear()
+        abandonAuthentication(message: "Interrupted. Press any key to try again")
+    }
+
+    /// The screens woke, the session came back or the screen was unlocked. A
+    /// dialog asked for before that moment may never have been shown, so a
+    /// pending authentication is dropped; raising the shield and restarting
+    /// the tap around it instead is what left the cover on "Authenticating…"
+    /// with no way out (2026-11-21).
+    private func handleReturn() {
+        if authInProgress {
+            abandonAuthentication(message: "Interrupted. Press any key to try again")
+        } else {
+            cycleInputBlocking()
+        }
     }
 
     private func scheduleScreenRebuild() {
